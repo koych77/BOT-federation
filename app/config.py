@@ -1,8 +1,9 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -18,7 +19,7 @@ class Settings(BaseSettings):
     telegram_webhook_secret: str = "change-me"
     require_telegram_auth: bool = False
 
-    admin_telegram_ids: list[int] = []
+    admin_telegram_ids: Annotated[list[int], NoDecode] = []
     admin_export_token: str | None = None
 
     membership_year: int = 2026

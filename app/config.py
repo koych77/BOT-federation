@@ -45,6 +45,13 @@ class Settings(BaseSettings):
             return [int(item) for item in value]
         return [int(item.strip()) for item in str(value).split(",") if item.strip()]
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def default_empty_database_url(cls, value: object) -> str:
+        if value in (None, ""):
+            return "sqlite:///./data/app.db"
+        return str(value)
+
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024

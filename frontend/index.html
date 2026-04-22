@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Вступление в БФБ</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="kicker">Белорусская федерация брейкинга</p>
+          <h1>Вступление и членский взнос</h1>
+          <p class="lead">Заполните анкету, приложите чек оплаты и отправьте заявку на проверку.</p>
+        </div>
+        <div class="amounts" aria-label="Размеры взносов">
+          <span><b id="entryFee">45</b> BYN вступительный</span>
+          <span><b id="membershipFee">90</b> BYN членский</span>
+        </div>
+      </section>
+
+      <form id="applicationForm" class="form">
+        <input type="hidden" name="init_data" id="initData" />
+
+        <section class="panel">
+          <h2>1. Данные участника</h2>
+          <div class="grid">
+            <label>
+              ФИО полностью
+              <input name="full_name" autocomplete="name" required />
+            </label>
+            <label>
+              Дата рождения
+              <input name="birth_date" type="date" />
+            </label>
+            <label>
+              Телефон
+              <input name="phone" autocomplete="tel" required />
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" autocomplete="email" />
+            </label>
+            <label>
+              Город
+              <input name="city" required />
+            </label>
+            <label>
+              Клуб / школа
+              <input name="club" />
+            </label>
+            <label>
+              Тренер
+              <input name="coach" />
+            </label>
+            <label>
+              Роль
+              <select name="role" required>
+                <option value="athlete">Спортсмен</option>
+                <option value="coach">Тренер</option>
+                <option value="judge">Судья</option>
+                <option value="representative">Представитель</option>
+                <option value="other">Другое</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>2. Заявка</h2>
+          <div class="segmented">
+            <label><input type="radio" name="application_type" value="entry" checked /> Вступление</label>
+            <label><input type="radio" name="application_type" value="renewal" /> Продление</label>
+          </div>
+          <div class="segmented">
+            <label><input type="radio" name="fee_type" value="entry" /> Вступительный</label>
+            <label><input type="radio" name="fee_type" value="membership" checked /> Членский</label>
+            <label><input type="radio" name="fee_type" value="both" /> Оба</label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>3. Оплата</h2>
+          <div class="grid">
+            <label>
+              Сумма оплаты, BYN
+              <input name="paid_amount" id="paidAmount" inputmode="decimal" required />
+            </label>
+            <label>
+              Дата оплаты
+              <input name="payment_date" type="date" required />
+            </label>
+            <label>
+              ФИО плательщика
+              <input name="payer_full_name" required />
+            </label>
+            <label>
+              Номер операции
+              <input name="operation_id" />
+            </label>
+            <label>
+              Канал оплаты
+              <input name="payment_channel" placeholder="ЕРИП, банк, карта" />
+            </label>
+            <label>
+              Чек оплаты
+              <input name="receipt" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" required />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel consent">
+          <label>
+            <input name="personal_data_consent" type="checkbox" required />
+            Даю согласие на обработку персональных данных для учета членства в БФБ.
+          </label>
+          <label>
+            <input name="data_accuracy_confirmed" type="checkbox" required />
+            Подтверждаю, что данные и чек оплаты указаны верно.
+          </label>
+        </section>
+
+        <button class="submit" type="submit">Отправить на проверку</button>
+        <p id="status" class="status" role="status"></p>
+      </form>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

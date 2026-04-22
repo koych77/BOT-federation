@@ -23,6 +23,15 @@ uvicorn app.main:app --reload
 
 Откройте `http://localhost:8000`.
 
+Для локального теста Telegram-бота во втором терминале запустите polling:
+
+```bash
+.venv\Scripts\activate
+python scripts/polling.py
+```
+
+После этого бот будет отвечать на `/start` и `/id` без публичного webhook.
+
 ## Railway
 
 1. Создайте GitHub-репозиторий и отправьте туда код.

@@ -32,20 +32,22 @@ def admin_keyboard(payment_id: int) -> InlineKeyboardMarkup:
 @router.message(Command("start"))
 async def start(message: Message) -> None:
     settings = get_settings()
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="Открыть анкету",
-                    web_app=WebAppInfo(url=settings.webapp_url),
-                )
+    text = "Здравствуйте! Здесь можно подать анкету в БФБ и загрузить подтверждение оплаты."
+    if settings.webapp_url.startswith("https://"):
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="Открыть анкету",
+                        web_app=WebAppInfo(url=settings.webapp_url),
+                    )
+                ]
             ]
-        ]
-    )
-    await message.answer(
-        "Здравствуйте! Здесь можно подать анкету в БФБ и загрузить подтверждение оплаты.",
-        reply_markup=keyboard,
-    )
+        )
+        await message.answer(text, reply_markup=keyboard)
+        return
+
+    await message.answer(f"{text}\n\nЛокальная форма для теста: {settings.webapp_url}")
 
 
 @router.message(Command("admin"))

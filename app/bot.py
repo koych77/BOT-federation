@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
@@ -12,6 +13,7 @@ from app.services.labels import APPLICATION_TYPE_LABELS, AUTO_CHECK_LABELS, FEE_
 from app.services.storage import read_receipt_bytes
 
 router = Router()
+FORM_PATH = Path(__file__).resolve().parent.parent / "assets" / "forms" / "zayavlenie-na-vstuplenie-v-bfb.doc"
 
 
 def _is_admin(user_id: int | None, settings: Settings) -> bool:
@@ -70,6 +72,17 @@ async def show_id(message: Message) -> None:
         await message.answer("Не удалось определить Telegram ID.")
         return
     await message.answer(f"Ваш Telegram ID: {message.from_user.id}")
+
+
+@router.message(Command("form"))
+async def send_application_form(message: Message) -> None:
+    if not FORM_PATH.exists():
+        await message.answer("Бланк заявления пока не найден на сервере.")
+        return
+    await message.answer_document(
+        FSInputFile(FORM_PATH, filename="zayavlenie-na-vstuplenie-v-bfb.doc"),
+        caption="Бланк заявления на вступление в БФБ. Его можно скачать, заполнить и передать администратору.",
+    )
 
 
 @router.callback_query(F.data.startswith("approve:"))

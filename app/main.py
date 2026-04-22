@@ -52,6 +52,15 @@ async def index() -> FileResponse:
 
 @app.get("/forms/zayavlenie-na-vstuplenie-v-bfb.doc")
 async def application_form_doc() -> FileResponse:
+    return _application_form_file("inline")
+
+
+@app.get("/forms/zayavlenie-na-vstuplenie-v-bfb/download")
+async def download_application_form_doc() -> FileResponse:
+    return _application_form_file("attachment")
+
+
+def _application_form_file(content_disposition_type: str) -> FileResponse:
     path = forms_dir / "zayavlenie-na-vstuplenie-v-bfb.doc"
     if not path.exists():
         raise HTTPException(status_code=404, detail="Бланк заявления не найден.")
@@ -59,6 +68,7 @@ async def application_form_doc() -> FileResponse:
         path,
         media_type="application/msword",
         filename="zayavlenie-na-vstuplenie-v-bfb.doc",
+        content_disposition_type=content_disposition_type,
     )
 
 

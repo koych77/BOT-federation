@@ -99,6 +99,23 @@ h1 {
   padding: 0 14px;
   border-radius: 6px;
   border: 1px solid #0f7f68;
+  background: #0f7f68;
+  cursor: pointer;
+  font: inherit;
+  color: #fff;
+  font-weight: 900;
+}
+
+.doc-link:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.browser-link {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  margin-left: 8px;
   color: #0d6f5c;
   font-weight: 900;
   text-decoration: none;

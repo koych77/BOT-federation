@@ -3,10 +3,12 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from aiogram import Bot
+from aiogram.types import FSInputFile
 from aiogram.types import Update
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.bot import build_dispatcher, notify_admins
@@ -31,6 +33,10 @@ dispatcher = build_dispatcher()
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 forms_dir = Path(__file__).resolve().parent.parent / "assets" / "forms"
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
+
+class FormDocumentRequest(BaseModel):
+    initData: str = ""
 
 
 @app.on_event("startup")
@@ -58,6 +64,42 @@ async def application_form_doc() -> FileResponse:
 @app.get("/forms/zayavlenie-na-vstuplenie-v-bfb/download")
 async def download_application_form_doc() -> FileResponse:
     return _application_form_file("attachment")
+
+
+@app.post("/api/request-form-doc")
+async def request_application_form_doc(payload: FormDocumentRequest) -> dict:
+    if not settings.bot_token:
+        raise HTTPException(status_code=503, detail="Бот пока не настроен для отправки документов.")
+
+    try:
+        telegram_user = parse_telegram_init_data(payload.initData, settings.bot_token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail="Не удалось подтвердить Telegram-пользователя.") from exc
+
+    telegram_id = telegram_user.get("id")
+    if not telegram_id:
+        raise HTTPException(status_code=401, detail="Откройте форму из Telegram-бота, чтобы получить бланк в чат.")
+
+    path = forms_dir / "zayavlenie-na-vstuplenie-v-bfb.doc"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Бланк заявления не найден на сервере.")
+
+    bot = Bot(settings.bot_token)
+    try:
+        await bot.send_document(
+            telegram_id,
+            FSInputFile(path, filename="zayavlenie-na-vstuplenie-v-bfb.doc"),
+            caption="Бланк заявления на вступление в БФБ. Скачайте его из этого сообщения, заполните и передайте администратору.",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Не удалось отправить бланк в Telegram. Напишите боту команду /form.",
+        ) from exc
+    finally:
+        await bot.session.close()
+
+    return {"message": "Бланк отправлен в чат с ботом. Откройте Telegram-сообщение и скачайте документ там."}
 
 
 def _application_form_file(content_disposition_type: str) -> FileResponse:

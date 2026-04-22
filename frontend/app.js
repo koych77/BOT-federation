@@ -5,6 +5,7 @@ const initData = document.querySelector("#initData");
 const paidAmount = document.querySelector("#paidAmount");
 const expectedAmountEl = document.querySelector("#expectedAmount");
 const paymentPurposeEl = document.querySelector("#paymentPurpose");
+const requestFormDoc = document.querySelector("#requestFormDoc");
 const feeInputs = [...document.querySelectorAll("input[name='fee_type']")];
 
 let config = {
@@ -84,6 +85,32 @@ async function submitForm(event) {
   }
 }
 
+async function requestFormDocument() {
+  if (!requestFormDoc) return;
+  const originalText = requestFormDoc.textContent;
+  requestFormDoc.disabled = true;
+  requestFormDoc.textContent = "Отправляем бланк...";
+  try {
+    const response = await fetch("/api/request-form-doc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: tg?.initData || "" }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail || "Не удалось отправить бланк.");
+    }
+    setStatus(payload.message, "ok");
+    tg?.HapticFeedback?.notificationOccurred?.("success");
+  } catch (error) {
+    setStatus(error.message, "error");
+    tg?.HapticFeedback?.notificationOccurred?.("error");
+  } finally {
+    requestFormDoc.disabled = false;
+    requestFormDoc.textContent = originalText;
+  }
+}
+
 tg?.ready?.();
 tg?.expand?.();
 if (initData) {
@@ -91,5 +118,6 @@ if (initData) {
 }
 
 feeInputs.forEach((input) => input.addEventListener("change", syncAmount));
+requestFormDoc?.addEventListener("click", requestFormDocument);
 form.addEventListener("submit", submitForm);
 loadConfig().catch(() => setStatus("Не удалось загрузить настройки формы.", "error"));

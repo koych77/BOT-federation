@@ -76,6 +76,10 @@ async def show_id(message: Message) -> None:
 
 @router.message(Command("form"))
 async def send_application_form(message: Message) -> None:
+    await send_application_form_document(message)
+
+
+async def send_application_form_document(message: Message) -> None:
     if not FORM_PATH.exists():
         await message.answer("Бланк заявления пока не найден на сервере.")
         return

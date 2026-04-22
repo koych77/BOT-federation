@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Вступление в БФБ</title>
+    <title>Анкета БФБ</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
@@ -12,8 +12,8 @@
       <section class="hero">
         <div>
           <p class="kicker">Белорусская федерация брейкинга</p>
-          <h1>Вступление и членский взнос</h1>
-          <p class="lead">Заполните анкету, приложите чек оплаты и отправьте заявку на проверку.</p>
+          <h1>Заявление и членский взнос</h1>
+          <p class="lead">Заполните электронное заявление, укажите за что платили и приложите чек.</p>
         </div>
         <div class="amounts" aria-label="Размеры взносов">
           <span><b id="entryFee">45</b> BYN вступительный</span>
@@ -24,12 +24,19 @@
       <form id="applicationForm" class="form">
         <input type="hidden" name="init_data" id="initData" />
 
+        <section class="panel notice">
+          <h2>Как это работает</h2>
+          <p>Эта анкета является электронным заявлением. Если федерации нужен бумажный оригинал, скачайте бланк, подпишите его и передайте администратору.</p>
+          <a class="doc-link" href="/forms/zayavlenie-na-vstuplenie-v-bfb.doc">Скачать бланк заявления</a>
+        </section>
+
         <section class="panel">
           <h2>1. Данные участника</h2>
+          <p class="hint">Укажите данные человека, за которого подается заявление.</p>
           <div class="grid">
             <label>
               ФИО полностью
-              <input name="full_name" autocomplete="name" required />
+              <input name="full_name" autocomplete="name" placeholder="Иванов Иван Иванович" required />
             </label>
             <label>
               Дата рождения
@@ -37,7 +44,7 @@
             </label>
             <label>
               Телефон
-              <input name="phone" autocomplete="tel" required />
+              <input name="phone" autocomplete="tel" placeholder="+375..." required />
             </label>
             <label>
               Email
@@ -45,15 +52,15 @@
             </label>
             <label>
               Город
-              <input name="city" required />
+              <input name="city" placeholder="Минск" required />
             </label>
             <label>
               Клуб / школа
-              <input name="club" />
+              <input name="club" placeholder="Название клуба или школы" />
             </label>
             <label>
               Тренер
-              <input name="coach" />
+              <input name="coach" placeholder="ФИО тренера" />
             </label>
             <label>
               Роль
@@ -69,20 +76,32 @@
         </section>
 
         <section class="panel">
-          <h2>2. Заявка</h2>
+          <h2>2. Заявление</h2>
+          <p class="hint">Выберите, что именно оформляем: первое вступление или продление членства.</p>
           <div class="segmented">
             <label><input type="radio" name="application_type" value="entry" checked /> Вступление</label>
             <label><input type="radio" name="application_type" value="renewal" /> Продление</label>
           </div>
-          <div class="segmented">
-            <label><input type="radio" name="fee_type" value="entry" /> Вступительный</label>
-            <label><input type="radio" name="fee_type" value="membership" checked /> Членский</label>
-            <label><input type="radio" name="fee_type" value="both" /> Оба</label>
-          </div>
         </section>
 
         <section class="panel">
-          <h2>3. Оплата</h2>
+          <h2>3. За что оплата</h2>
+          <p class="hint">Это назначение попадет админам и в Excel. Так будет понятно, за какой взнос человек заплатил.</p>
+          <div class="segmented">
+            <label><input type="radio" name="fee_type" value="entry" /> Вступительный</label>
+            <label><input type="radio" name="fee_type" value="membership" checked /> Членский</label>
+            <label><input type="radio" name="fee_type" value="both" /> Оба взноса</label>
+          </div>
+          <div class="summary">
+            <span>Ожидаемая сумма</span>
+            <strong><span id="expectedAmount">90</span> BYN</strong>
+          </div>
+          <p id="paymentPurpose" class="purpose">Назначение: членский взнос за 2026 год.</p>
+        </section>
+
+        <section class="panel">
+          <h2>4. Чек оплаты</h2>
+          <p class="hint">Лучше загружать PDF-чек из банка или ЕРИП. Фото и скрины бот пометит для ручной проверки.</p>
           <div class="grid">
             <label>
               Сумма оплаты, BYN
@@ -94,21 +113,32 @@
             </label>
             <label>
               ФИО плательщика
-              <input name="payer_full_name" required />
+              <input name="payer_full_name" placeholder="Как указано в оплате" required />
             </label>
             <label>
               Номер операции
-              <input name="operation_id" />
+              <input name="operation_id" placeholder="Если есть в чеке" />
             </label>
             <label>
               Канал оплаты
               <input name="payment_channel" placeholder="ЕРИП, банк, карта" />
             </label>
             <label>
-              Чек оплаты
+              Файл чека
               <input name="receipt" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" required />
             </label>
           </div>
+        </section>
+
+        <section class="panel notice">
+          <h2>Что проверит бот</h2>
+          <ul>
+            <li>совпадает ли сумма с выбранным взносом;</li>
+            <li>не загружался ли такой чек раньше;</li>
+            <li>не повторяется ли номер операции;</li>
+            <li>можно ли прочитать PDF-чек и найти в нем сумму, ФИО или номер операции.</li>
+          </ul>
+          <p>Окончательное подтверждение поступления денег делает администратор по выписке или ЕРИП.</p>
         </section>
 
         <section class="panel consent">
@@ -122,7 +152,7 @@
           </label>
         </section>
 
-        <button class="submit" type="submit">Отправить на проверку</button>
+        <button class="submit" type="submit">Отправить заявление и чек</button>
         <p id="status" class="status" role="status"></p>
       </form>
     </main>

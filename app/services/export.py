@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import MemberApplication, Payment
+from app.services.labels import APPLICATION_TYPE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, ROLE_LABELS, label
 
 
 def _header(ws, labels: list[str]) -> None:
@@ -60,6 +61,7 @@ def build_members_export(db: Session) -> bytes:
             "ID заявки",
             "ФИО",
             "Тип взноса",
+            "Назначение оплаты",
             "Ожидаемая сумма",
             "Указанная сумма",
             "Дата оплаты",
@@ -67,6 +69,7 @@ def build_members_export(db: Session) -> bytes:
             "Номер операции",
             "Канал оплаты",
             "Автопроверка",
+            "Решение бота",
             "Статус админа",
             "Комментарий",
             "Кто проверил",
@@ -90,8 +93,8 @@ def build_members_export(db: Session) -> bytes:
                 app.city,
                 app.club,
                 app.coach,
-                app.role,
-                app.application_type,
+                label(ROLE_LABELS, app.role),
+                label(APPLICATION_TYPE_LABELS, app.application_type),
                 app.membership_year,
                 app.status,
                 app.created_at.isoformat() if app.created_at else "",
@@ -104,6 +107,7 @@ def build_members_export(db: Session) -> bytes:
                     app.id,
                     app.full_name,
                     payment.fee_type,
+                    label(FEE_LABELS, payment.fee_type),
                     float(payment.expected_amount),
                     float(payment.paid_amount) if payment.paid_amount is not None else "",
                     payment.payment_date.isoformat() if payment.payment_date else "",
@@ -111,6 +115,7 @@ def build_members_export(db: Session) -> bytes:
                     payment.operation_id,
                     payment.payment_channel,
                     payment.auto_check_status,
+                    label(AUTO_CHECK_LABELS, payment.auto_check_status),
                     payment.admin_status,
                     payment.admin_comment,
                     payment.reviewed_by_telegram_id,

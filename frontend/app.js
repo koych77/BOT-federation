@@ -3,6 +3,8 @@ const form = document.querySelector("#applicationForm");
 const statusEl = document.querySelector("#status");
 const initData = document.querySelector("#initData");
 const paidAmount = document.querySelector("#paidAmount");
+const expectedAmountEl = document.querySelector("#expectedAmount");
+const paymentPurposeEl = document.querySelector("#paymentPurpose");
 const feeInputs = [...document.querySelectorAll("input[name='fee_type']")];
 
 let config = {
@@ -10,6 +12,7 @@ let config = {
   membershipFee: 90,
   currency: "BYN",
 };
+let lastSuggestedAmount = "";
 
 function setStatus(message, kind = "") {
   statusEl.textContent = message;
@@ -24,7 +27,22 @@ function expectedAmount() {
 }
 
 function syncAmount() {
-  paidAmount.placeholder = String(expectedAmount());
+  const amount = expectedAmount();
+  paidAmount.placeholder = String(amount);
+  if (!paidAmount.value || paidAmount.value === lastSuggestedAmount) {
+    paidAmount.value = String(amount);
+  }
+  lastSuggestedAmount = String(amount);
+  expectedAmountEl.textContent = String(amount);
+  const fee = feeInputs.find((input) => input.checked)?.value;
+  const year = config.membershipYear || 2026;
+  if (fee === "entry") {
+    paymentPurposeEl.textContent = `Назначение: вступительный взнос за ${year} год.`;
+  } else if (fee === "both") {
+    paymentPurposeEl.textContent = `Назначение: вступительный и членский взносы за ${year} год.`;
+  } else {
+    paymentPurposeEl.textContent = `Назначение: членский взнос за ${year} год.`;
+  }
 }
 
 async function loadConfig() {
@@ -52,7 +70,8 @@ async function submitForm(event) {
     if (!response.ok) {
       throw new Error(payload.detail || "Не удалось отправить заявку.");
     }
-    setStatus(payload.message, "ok");
+    const checkText = payload.autoCheckStatus ? ` Статус автопроверки: ${payload.autoCheckStatus}.` : "";
+    setStatus(`${payload.message}${checkText}`, "ok");
     tg?.MainButton?.hide();
     tg?.HapticFeedback?.notificationOccurred?.("success");
     form.reset();

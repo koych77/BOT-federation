@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import SessionLocal
 from app.models import MemberApplication, Payment
+from app.services.labels import APPLICATION_TYPE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, ROLE_LABELS, label
 from app.services.storage import read_receipt_bytes
 
 router = Router()
@@ -129,16 +130,39 @@ async def notify_admins(application: MemberApplication, payment: Payment, db: Se
     if not settings.bot_token or not settings.admin_telegram_ids:
         return
 
-    notes = payment.auto_check_notes.replace("[", "").replace("]", "").replace('"', "")
+    import json
+
+    try:
+        note_items = json.loads(payment.auto_check_notes or "[]")
+    except json.JSONDecodeError:
+        note_items = [payment.auto_check_notes]
+    notes = "\n".join(f"- {item}" for item in note_items[:8])
+    auto_label = label(AUTO_CHECK_LABELS, payment.auto_check_status)
+    decision_line = (
+        "Решение бота: можно проверять быстро, формальные признаки совпали."
+        if payment.auto_check_status == "ready_for_admin_approval"
+        else "Решение бота: нужна ручная проверка администратором."
+    )
     text = (
         f"Новая заявка #{application.id}\n"
+        f"\nУчастник\n"
         f"ФИО: {application.full_name}\n"
+        f"Телефон: {application.phone}\n"
         f"Город: {application.city}\n"
         f"Клуб: {application.club or '-'}\n"
-        f"Тип взноса: {payment.fee_type}\n"
-        f"Сумма: {payment.paid_amount} / ожидается {payment.expected_amount}\n"
-        f"Автопроверка: {payment.auto_check_status}\n"
-        f"Заметки: {notes}"
+        f"Роль: {label(ROLE_LABELS, application.role)}\n"
+        f"\nЗаявление и оплата\n"
+        f"Тип заявки: {label(APPLICATION_TYPE_LABELS, application.application_type)}\n"
+        f"Назначение оплаты: {label(FEE_LABELS, payment.fee_type)}\n"
+        f"Год членства: {application.membership_year}\n"
+        f"Сумма: {payment.paid_amount} / ожидается {payment.expected_amount} BYN\n"
+        f"Дата оплаты: {payment.payment_date or '-'}\n"
+        f"Плательщик: {payment.payer_full_name}\n"
+        f"Операция: {payment.operation_id or '-'}\n"
+        f"\nАвтопроверка\n"
+        f"Статус: {auto_label}\n"
+        f"{decision_line}\n"
+        f"{notes}"
     )
 
     bot = Bot(settings.bot_token)

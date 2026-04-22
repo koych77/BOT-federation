@@ -16,13 +16,20 @@ from app.models import MemberApplication, Payment
 from app.security import parse_telegram_init_data
 from app.services.export import build_members_export
 from app.services.payment_checks import expected_amount_for, run_preliminary_checks
-from app.services.storage import save_upload
+from app.services.receipt_scanner import (
+    scan_receipt_text,
+    text_contains_amount,
+    text_contains_name_part,
+    text_contains_operation,
+)
+from app.services.storage import read_receipt_bytes, save_upload
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
 dispatcher = build_dispatcher()
 
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+forms_dir = Path(__file__).resolve().parent.parent / "assets" / "forms"
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
 
@@ -41,6 +48,18 @@ async def startup() -> None:
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(frontend_dir / "index.html")
+
+
+@app.get("/forms/zayavlenie-na-vstuplenie-v-bfb.doc")
+async def application_form_doc() -> FileResponse:
+    path = forms_dir / "zayavlenie-na-vstuplenie-v-bfb.doc"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Бланк заявления не найден.")
+    return FileResponse(
+        path,
+        media_type="application/msword",
+        filename="zayavlenie-na-vstuplenie-v-bfb.doc",
+    )
 
 
 @app.get("/api/config")
@@ -110,6 +129,12 @@ async def create_application(
     parsed_paid_amount = _parse_decimal(paid_amount)
     parsed_payment_date = _parse_date(payment_date)
     receipt_path, receipt_size, receipt_sha256 = await save_upload(settings, receipt)
+    receipt_bytes = read_receipt_bytes(settings, receipt_path)
+    receipt_scan = scan_receipt_text(
+        receipt_bytes,
+        receipt.content_type or "application/octet-stream",
+        receipt.filename or "receipt",
+    )
 
     auto_status, auto_notes = run_preliminary_checks(
         db,
@@ -125,6 +150,11 @@ async def create_application(
         content_type=receipt.content_type or "application/octet-stream",
         original_name=receipt.filename or "receipt",
         max_upload_bytes=settings.max_upload_bytes,
+        receipt_scan_status=receipt_scan.status,
+        receipt_scan_notes=receipt_scan.notes,
+        receipt_text_has_amount=text_contains_amount(receipt_scan.text, parsed_paid_amount),
+        receipt_text_has_operation=text_contains_operation(receipt_scan.text, operation_id),
+        receipt_text_has_name=text_contains_name_part(receipt_scan.text, payer_full_name or full_name),
     )
 
     application = MemberApplication(
@@ -178,7 +208,7 @@ async def create_application(
         "id": application.id,
         "status": application.status,
         "autoCheckStatus": payment.auto_check_status,
-        "message": "Заявка отправлена. Администратор проверит оплату и отправит подтверждение в Telegram.",
+        "message": "Заявка отправлена. Бот выполнил первичную проверку чека, администратор получит статус и примет финальное решение.",
     }
 
 

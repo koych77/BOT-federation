@@ -71,7 +71,21 @@ try {
     throw "Could not get Cloudflare tunnel URL. See cloudflared.log and cloudflared.err.log."
   }
 
-  Invoke-WebRequest -Uri "$publicUrl/health" -UseBasicParsing -TimeoutSec 20 | Out-Null
+  $reachable = $false
+  for ($i = 0; $i -lt 45; $i++) {
+    try {
+      Invoke-WebRequest -Uri "$publicUrl/health" -UseBasicParsing -TimeoutSec 10 | Out-Null
+      $reachable = $true
+      break
+    }
+    catch {
+      Start-Sleep -Seconds 2
+    }
+  }
+
+  if (-not $reachable) {
+    throw "Cloudflare tunnel URL was created but did not become reachable: $publicUrl"
+  }
 
   $envPath = Join-Path $Root ".env"
   $envText = [System.IO.File]::ReadAllText($envPath, [System.Text.UTF8Encoding]::new($false))

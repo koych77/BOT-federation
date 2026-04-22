@@ -28,6 +28,12 @@ class Settings(BaseSettings):
 
     upload_dir: Path = Path("./data/uploads")
     max_upload_mb: int = 10
+    storage_backend: str = "local"
+    storage_endpoint_url: str | None = None
+    storage_region: str = "auto"
+    storage_bucket: str | None = None
+    storage_access_key: str | None = None
+    storage_secret_key: str | None = None
 
     @field_validator("admin_telegram_ids", mode="before")
     @classmethod

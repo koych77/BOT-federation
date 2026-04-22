@@ -2,12 +2,13 @@ from datetime import datetime, timezone
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
-from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.types import BufferedInputFile, CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
 from app.db import SessionLocal
 from app.models import MemberApplication, Payment
+from app.services.storage import read_receipt_bytes
 
 router = Router()
 
@@ -134,10 +135,16 @@ async def notify_admins(application: MemberApplication, payment: Payment, db: Se
     try:
         for admin_id in settings.admin_telegram_ids:
             await bot.send_message(admin_id, text, reply_markup=admin_keyboard(payment.id))
-            await bot.send_document(
-                admin_id,
-                FSInputFile(payment.receipt_path, filename=payment.receipt_original_name),
-                caption=f"Чек по заявке #{application.id}",
-            )
+            try:
+                if payment.receipt_path.startswith("s3://"):
+                    document = BufferedInputFile(
+                        read_receipt_bytes(settings, payment.receipt_path),
+                        filename=payment.receipt_original_name,
+                    )
+                else:
+                    document = FSInputFile(payment.receipt_path, filename=payment.receipt_original_name)
+                await bot.send_document(admin_id, document, caption=f"Чек по заявке #{application.id}")
+            except Exception:
+                await bot.send_message(admin_id, f"Чек по заявке #{application.id} не удалось приложить автоматически.")
     finally:
         await bot.session.close()

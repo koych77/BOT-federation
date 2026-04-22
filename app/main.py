@@ -109,7 +109,7 @@ async def create_application(
     expected_amount = expected_amount_for(fee_type, settings.entry_fee, settings.membership_fee)
     parsed_paid_amount = _parse_decimal(paid_amount)
     parsed_payment_date = _parse_date(payment_date)
-    receipt_path, receipt_size, receipt_sha256 = await save_upload(settings.upload_dir, receipt)
+    receipt_path, receipt_size, receipt_sha256 = await save_upload(settings, receipt)
 
     auto_status, auto_notes = run_preliminary_checks(
         db,

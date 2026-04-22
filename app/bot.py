@@ -61,6 +61,14 @@ async def admin(message: Message) -> None:
     await message.answer(f"Админ-панель MVP: выгрузка Excel\n{export_url}")
 
 
+@router.message(Command("id"))
+async def show_id(message: Message) -> None:
+    if not message.from_user:
+        await message.answer("Не удалось определить Telegram ID.")
+        return
+    await message.answer(f"Ваш Telegram ID: {message.from_user.id}")
+
+
 @router.callback_query(F.data.startswith("approve:"))
 async def approve_payment(callback: CallbackQuery) -> None:
     await _set_payment_status(callback, "approved", "Оплата подтверждена.")

@@ -15,7 +15,6 @@ const paymentAmountValue = document.querySelector("#paymentAmountValue");
 const paymentFeeLabel = document.querySelector("#paymentFeeLabel");
 const paymentMemberName = document.querySelector("#paymentMemberName");
 const paymentPurposeValue = document.querySelector("#paymentPurposeValue");
-const qrCodePreview = document.querySelector("#qrCodePreview");
 const jumpToReceiptButton = document.querySelector("#jumpToReceipt");
 const receiptSection = document.querySelector("#receiptSection");
 const applicantModeInputs = [...document.querySelectorAll("input[name='applicant_mode']")];
@@ -25,12 +24,6 @@ const applicantNameInputs = {
   first: document.querySelector("input[name='applicant_first_name']"),
   middle: document.querySelector("input[name='applicant_middle_name']"),
 };
-
-const eripPathLines = [
-  "Благотворительность, общественные объединения",
-  "Прочие общественные объединения",
-  "Бел. федерация брейкинга",
-];
 
 let config = {
   entryFee: 45,
@@ -90,6 +83,13 @@ function syncPayerName() {
   payerFullName.value = fullNameFromApplicant();
 }
 
+function syncPaymentPreview() {
+  paymentAmountValue.textContent = String(expectedAmount());
+  paymentFeeLabel.textContent = selectedFeeLabel();
+  paymentMemberName.textContent = fullNameForPayment();
+  paymentPurposeValue.textContent = paymentPurposeEl.textContent.replace("Назначение: ", "");
+}
+
 function syncApplicantMode() {
   const isChild = selectedApplicantMode() === "child";
   memberSection?.classList.toggle("hidden", !isChild);
@@ -102,45 +102,6 @@ function syncApplicantMode() {
     memberMiddleName.value = "";
   }
   syncPaymentPreview();
-}
-
-function buildQrText() {
-  return [
-    "Белорусская федерация брейкинга",
-    "Оплата через ЕРИП",
-    "",
-    "Путь ЕРИП:",
-    ...eripPathLines.map((line, index) => `${index + 1}. ${line}`),
-    "",
-    `Сумма: ${expectedAmount()} BYN`,
-    `Тип взноса: ${selectedFeeLabel()}`,
-    `Ф.И.О. за кого оплата: ${fullNameForPayment()}`,
-    `Назначение: ${paymentPurposeValue.textContent || paymentPurposeEl.textContent}`,
-    "",
-    "После оплаты вернитесь в MiniApp и загрузите чек.",
-  ].join("\n");
-}
-
-async function syncQrCode() {
-  if (!qrCodePreview || !window.QRCode) return;
-  try {
-    qrCodePreview.src = await window.QRCode.toDataURL(buildQrText(), {
-      width: 256,
-      margin: 1,
-      color: { dark: "#111111", light: "#ffffff" },
-    });
-  } catch {
-    qrCodePreview.removeAttribute("src");
-    qrCodePreview.alt = "Не удалось построить QR";
-  }
-}
-
-function syncPaymentPreview() {
-  paymentAmountValue.textContent = String(expectedAmount());
-  paymentFeeLabel.textContent = selectedFeeLabel();
-  paymentMemberName.textContent = fullNameForPayment();
-  paymentPurposeValue.textContent = paymentPurposeEl.textContent.replace("Назначение: ", "");
-  syncQrCode();
 }
 
 function syncAmount() {

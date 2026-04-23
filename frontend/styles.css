@@ -171,23 +171,15 @@ h1 {
   cursor: pointer;
 }
 
-.payment-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.payment-sheet,
-.qr-card {
+.payment-sheet {
   padding: 16px;
   border: 1px solid #cfd8dd;
   border-radius: 6px;
   background: #fff;
+  margin-top: 16px;
 }
 
-.payment-sheet h3,
-.qr-card h3 {
+.payment-sheet h3 {
   margin: 0 0 12px;
   font-size: 18px;
 }
@@ -218,27 +210,6 @@ h1 {
   margin: 14px 0 0;
   color: #234039;
   line-height: 1.5;
-}
-
-.qr-hint {
-  margin-top: 0;
-}
-
-.qr-frame {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 272px;
-  margin-top: 12px;
-  border: 1px solid #dfe5e8;
-  border-radius: 6px;
-  background: #fff;
-}
-
-.qr-frame img {
-  width: min(256px, 100%);
-  height: auto;
-  display: block;
 }
 
 .purpose {
@@ -383,10 +354,6 @@ select:focus {
   }
 
   .grid {
-    grid-template-columns: 1fr;
-  }
-
-  .payment-layout {
     grid-template-columns: 1fr;
   }
 

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Анкета БФБ</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -85,21 +84,21 @@
         </section>
 
         <section class="panel hidden" id="memberSection">
-          <h2>4. Данные члена федерации</h2>
+          <h2>4. Данные ребенка</h2>
           <p class="hint">
-            Этот блок нужен, если заявление подается за ребенка. Для личного вступления данные члена федерации совпадут с заявителем автоматически.
+            Заполняйте этот блок только если оформляете ребенка. Если оформляете себя, этот раздел заполнять не нужно.
           </p>
           <div class="grid">
             <label>
-              Фамилия члена федерации
+              Фамилия ребенка
               <input name="member_last_name" id="memberLastName" />
             </label>
             <label>
-              Имя члена федерации
+              Имя ребенка
               <input name="member_first_name" id="memberFirstName" />
             </label>
             <label>
-              Отчество члена федерации
+              Отчество ребенка
               <input name="member_middle_name" id="memberMiddleName" />
             </label>
           </div>
@@ -129,7 +128,7 @@
               <input name="apartment" placeholder="34" />
             </label>
             <label>
-              Дата рождения члена федерации
+              Дата рождения
               <input name="birth_date" type="date" required />
             </label>
             <label>
@@ -200,41 +199,30 @@
               <input name="payment_channel" placeholder="ЕРИП, банковское приложение, касса, карта" />
             </label>
           </div>
-          <div class="payment-layout">
-            <div class="payment-sheet">
-              <h3>Данные для оплаты</h3>
-              <dl class="payment-details">
-                <div>
-                  <dt>Сумма</dt>
-                  <dd><span id="paymentAmountValue">90</span> BYN</dd>
-                </div>
-                <div>
-                  <dt>Тип взноса</dt>
-                  <dd id="paymentFeeLabel">Членский</dd>
-                </div>
-                <div>
-                  <dt>Ф.И.О. за кого оплата</dt>
-                  <dd id="paymentMemberName">Заполните заявление выше</dd>
-                </div>
-                <div>
-                  <dt>Назначение</dt>
-                  <dd id="paymentPurposeValue">Членский взнос за 2026 год</dd>
-                </div>
-              </dl>
-              <p class="payment-note">
-                Откройте банковское приложение, пройдите по пути ЕРИП и используйте эти данные при оплате.
-              </p>
-              <button class="secondary-button" type="button" id="jumpToReceipt">Я оплатил, перейти к чеку</button>
-            </div>
-            <div class="qr-card">
-              <h3>QR с инструкцией</h3>
-              <p class="hint qr-hint">
-                Отсканируйте QR, чтобы сохранить в телефоне сумму, Ф.И.О. и путь ЕРИП. Это не автоматический платеж, а памятка для оплаты.
-              </p>
-              <div class="qr-frame">
-                <img id="qrCodePreview" alt="QR с инструкцией для оплаты" />
+          <div class="payment-sheet">
+            <h3>Данные для оплаты</h3>
+            <dl class="payment-details">
+              <div>
+                <dt>Сумма</dt>
+                <dd><span id="paymentAmountValue">90</span> BYN</dd>
               </div>
-            </div>
+              <div>
+                <dt>Тип взноса</dt>
+                <dd id="paymentFeeLabel">Членский</dd>
+              </div>
+              <div>
+                <dt>Ф.И.О. за кого оплата</dt>
+                <dd id="paymentMemberName">Заполните заявление выше</dd>
+              </div>
+              <div>
+                <dt>Назначение</dt>
+                <dd id="paymentPurposeValue">Членский взнос за 2026 год</dd>
+              </div>
+            </dl>
+            <p class="payment-note">
+              Откройте банковское приложение, пройдите по пути ЕРИП и используйте эти данные при оплате.
+            </p>
+            <button class="secondary-button" type="button" id="jumpToReceipt">Я оплатил, перейти к чеку</button>
           </div>
         </section>
 

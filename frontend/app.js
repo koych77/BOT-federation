@@ -6,12 +6,18 @@ const paidAmount = document.querySelector("#paidAmount");
 const expectedAmountEl = document.querySelector("#expectedAmount");
 const paymentPurposeEl = document.querySelector("#paymentPurpose");
 const requestFormDoc = document.querySelector("#requestFormDoc");
-const copyEripPathButton = document.querySelector("#copyEripPath");
 const payerFullName = document.querySelector("#payerFullName");
 const memberSection = document.querySelector("#memberSection");
 const memberLastName = document.querySelector("#memberLastName");
 const memberFirstName = document.querySelector("#memberFirstName");
 const memberMiddleName = document.querySelector("#memberMiddleName");
+const paymentAmountValue = document.querySelector("#paymentAmountValue");
+const paymentFeeLabel = document.querySelector("#paymentFeeLabel");
+const paymentMemberName = document.querySelector("#paymentMemberName");
+const paymentPurposeValue = document.querySelector("#paymentPurposeValue");
+const qrCodePreview = document.querySelector("#qrCodePreview");
+const jumpToReceiptButton = document.querySelector("#jumpToReceipt");
+const receiptSection = document.querySelector("#receiptSection");
 const applicantModeInputs = [...document.querySelectorAll("input[name='applicant_mode']")];
 const feeInputs = [...document.querySelectorAll("input[name='fee_type']")];
 const applicantNameInputs = {
@@ -20,6 +26,12 @@ const applicantNameInputs = {
   middle: document.querySelector("input[name='applicant_middle_name']"),
 };
 
+const eripPathLines = [
+  "Благотворительность, общественные объединения",
+  "Прочие общественные объединения",
+  "Бел. федерация брейкинга",
+];
+
 let config = {
   entryFee: 45,
   membershipFee: 90,
@@ -27,13 +39,6 @@ let config = {
 };
 let lastSuggestedAmount = "";
 let payerTouched = false;
-const eripPathText = [
-  "Путь ЕРИП:",
-  "1. Благотворительность, общественные объединения",
-  "2. Прочие общественные объединения",
-  "3. Бел. федерация брейкинга",
-  "Указывайте Ф.И.О. за кого оплата.",
-].join("\n");
 
 function setStatus(message, kind = "") {
   statusEl.textContent = message;
@@ -42,6 +47,13 @@ function setStatus(message, kind = "") {
 
 function selectedFeeType() {
   return feeInputs.find((input) => input.checked)?.value || "membership";
+}
+
+function selectedFeeLabel() {
+  const fee = selectedFeeType();
+  if (fee === "entry") return "Вступительный";
+  if (fee === "both") return "Вступительный + членский";
+  return "Членский";
 }
 
 function selectedApplicantMode() {
@@ -62,6 +74,17 @@ function fullNameFromApplicant() {
     .join(" ");
 }
 
+function fullNameForPayment() {
+  if (selectedApplicantMode() === "child") {
+    const memberName = [memberLastName?.value, memberFirstName?.value, memberMiddleName?.value]
+      .map((value) => value?.trim())
+      .filter(Boolean)
+      .join(" ");
+    return memberName || "Укажите Ф.И.О. члена федерации";
+  }
+  return fullNameFromApplicant() || "Заполните заявление выше";
+}
+
 function syncPayerName() {
   if (payerTouched) return;
   payerFullName.value = fullNameFromApplicant();
@@ -78,6 +101,46 @@ function syncApplicantMode() {
     memberFirstName.value = "";
     memberMiddleName.value = "";
   }
+  syncPaymentPreview();
+}
+
+function buildQrText() {
+  return [
+    "Белорусская федерация брейкинга",
+    "Оплата через ЕРИП",
+    "",
+    "Путь ЕРИП:",
+    ...eripPathLines.map((line, index) => `${index + 1}. ${line}`),
+    "",
+    `Сумма: ${expectedAmount()} BYN`,
+    `Тип взноса: ${selectedFeeLabel()}`,
+    `Ф.И.О. за кого оплата: ${fullNameForPayment()}`,
+    `Назначение: ${paymentPurposeValue.textContent || paymentPurposeEl.textContent}`,
+    "",
+    "После оплаты вернитесь в MiniApp и загрузите чек.",
+  ].join("\n");
+}
+
+async function syncQrCode() {
+  if (!qrCodePreview || !window.QRCode) return;
+  try {
+    qrCodePreview.src = await window.QRCode.toDataURL(buildQrText(), {
+      width: 256,
+      margin: 1,
+      color: { dark: "#111111", light: "#ffffff" },
+    });
+  } catch {
+    qrCodePreview.removeAttribute("src");
+    qrCodePreview.alt = "Не удалось построить QR";
+  }
+}
+
+function syncPaymentPreview() {
+  paymentAmountValue.textContent = String(expectedAmount());
+  paymentFeeLabel.textContent = selectedFeeLabel();
+  paymentMemberName.textContent = fullNameForPayment();
+  paymentPurposeValue.textContent = paymentPurposeEl.textContent.replace("Назначение: ", "");
+  syncQrCode();
 }
 
 function syncAmount() {
@@ -98,6 +161,8 @@ function syncAmount() {
   } else {
     paymentPurposeEl.textContent = `Назначение: членский взнос за ${year} год.`;
   }
+
+  syncPaymentPreview();
 }
 
 async function loadConfig() {
@@ -141,6 +206,7 @@ async function submitForm(event) {
     syncApplicantMode();
     syncAmount();
     syncPayerName();
+    syncPaymentPreview();
   } catch (error) {
     setStatus(error.message, "error");
     tg?.HapticFeedback?.notificationOccurred?.("error");
@@ -175,17 +241,6 @@ async function requestFormDocument() {
   }
 }
 
-async function copyEripPath() {
-  try {
-    await navigator.clipboard.writeText(eripPathText);
-    setStatus("Путь ЕРИП скопирован.", "ok");
-    tg?.HapticFeedback?.notificationOccurred?.("success");
-  } catch {
-    setStatus("Не удалось скопировать путь ЕРИП. Скопируйте его вручную с экрана.", "error");
-    tg?.HapticFeedback?.notificationOccurred?.("error");
-  }
-}
-
 tg?.ready?.();
 tg?.expand?.();
 if (initData) {
@@ -196,12 +251,19 @@ payerFullName?.addEventListener("input", () => {
   payerTouched = Boolean(payerFullName.value.trim());
 });
 Object.values(applicantNameInputs).forEach((input) => input?.addEventListener("input", syncPayerName));
+Object.values(applicantNameInputs).forEach((input) => input?.addEventListener("input", syncPaymentPreview));
+memberLastName?.addEventListener("input", syncPaymentPreview);
+memberFirstName?.addEventListener("input", syncPaymentPreview);
+memberMiddleName?.addEventListener("input", syncPaymentPreview);
 feeInputs.forEach((input) => input.addEventListener("change", syncAmount));
 applicantModeInputs.forEach((input) => input.addEventListener("change", syncApplicantMode));
 requestFormDoc?.addEventListener("click", requestFormDocument);
-copyEripPathButton?.addEventListener("click", copyEripPath);
+jumpToReceiptButton?.addEventListener("click", () => {
+  receiptSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 form.addEventListener("submit", submitForm);
 
 syncApplicantMode();
 syncPayerName();
+syncPaymentPreview();
 loadConfig().catch(() => setStatus("Не удалось загрузить настройки формы.", "error"));

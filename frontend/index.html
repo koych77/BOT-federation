@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Анкета БФБ</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -166,7 +167,6 @@
               Обязательно указывайте Ф.И.О. за кого оплата. В ЕРИП доступны суммы:
               вступительный взнос — 45 BYN, членский взнос — 90 BYN.
             </p>
-            <button class="secondary-button" type="button" id="copyEripPath">Скопировать путь ЕРИП</button>
           </div>
           <div class="segmented">
             <label><input type="radio" name="fee_type" value="entry" /> Вступительный</label>
@@ -200,9 +200,45 @@
               <input name="payment_channel" placeholder="ЕРИП, банковское приложение, касса, карта" />
             </label>
           </div>
+          <div class="payment-layout">
+            <div class="payment-sheet">
+              <h3>Данные для оплаты</h3>
+              <dl class="payment-details">
+                <div>
+                  <dt>Сумма</dt>
+                  <dd><span id="paymentAmountValue">90</span> BYN</dd>
+                </div>
+                <div>
+                  <dt>Тип взноса</dt>
+                  <dd id="paymentFeeLabel">Членский</dd>
+                </div>
+                <div>
+                  <dt>Ф.И.О. за кого оплата</dt>
+                  <dd id="paymentMemberName">Заполните заявление выше</dd>
+                </div>
+                <div>
+                  <dt>Назначение</dt>
+                  <dd id="paymentPurposeValue">Членский взнос за 2026 год</dd>
+                </div>
+              </dl>
+              <p class="payment-note">
+                Откройте банковское приложение, пройдите по пути ЕРИП и используйте эти данные при оплате.
+              </p>
+              <button class="secondary-button" type="button" id="jumpToReceipt">Я оплатил, перейти к чеку</button>
+            </div>
+            <div class="qr-card">
+              <h3>QR с инструкцией</h3>
+              <p class="hint qr-hint">
+                Отсканируйте QR, чтобы сохранить в телефоне сумму, Ф.И.О. и путь ЕРИП. Это не автоматический платеж, а памятка для оплаты.
+              </p>
+              <div class="qr-frame">
+                <img id="qrCodePreview" alt="QR с инструкцией для оплаты" />
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" id="receiptSection">
           <h2>7. Чек оплаты</h2>
           <p class="hint">
             Лучше загружать PDF-чек из банка или ЕРИП. Фото и скриншоты тоже принимаются, но такие заявки чаще уходят на ручную проверку.

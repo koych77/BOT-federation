@@ -171,6 +171,76 @@ h1 {
   cursor: pointer;
 }
 
+.payment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.payment-sheet,
+.qr-card {
+  padding: 16px;
+  border: 1px solid #cfd8dd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.payment-sheet h3,
+.qr-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.payment-details {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.payment-details div {
+  display: grid;
+  gap: 4px;
+}
+
+.payment-details dt {
+  color: #526069;
+  font-weight: 700;
+}
+
+.payment-details dd {
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.payment-note {
+  margin: 14px 0 0;
+  color: #234039;
+  line-height: 1.5;
+}
+
+.qr-hint {
+  margin-top: 0;
+}
+
+.qr-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 272px;
+  margin-top: 12px;
+  border: 1px solid #dfe5e8;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.qr-frame img {
+  width: min(256px, 100%);
+  height: auto;
+  display: block;
+}
+
 .purpose {
   margin: 12px 0 0;
   color: #234039;
@@ -313,6 +383,10 @@ select:focus {
   }
 
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-layout {
     grid-template-columns: 1fr;
   }
 

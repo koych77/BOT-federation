@@ -135,7 +135,16 @@
             </label>
             <label>
               Дата рождения
-              <input name="birth_date" id="birthDate" type="date" required />
+              <input
+                name="birth_date"
+                id="birthDate"
+                class="date-input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="дд.мм.гггг"
+                required
+              />
             </label>
             <label>
               Телефон домашний
@@ -173,7 +182,15 @@
             </label>
             <label>
               Дата заявления
-              <input name="statement_date" id="statementDate" type="date" />
+              <input
+                name="statement_date"
+                id="statementDate"
+                class="date-input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="дд.мм.гггг"
+              />
             </label>
             <label>
               Инициалы и фамилия в бланке
@@ -181,7 +198,7 @@
             </label>
             <label class="span-2">
               Подпись
-              <input value="Ставится на бумажном оригинале заявления" readonly />
+              <span class="readonly-note">Ставится на бумажном оригинале заявления</span>
             </label>
           </div>
         </section>
@@ -211,7 +228,7 @@
             </label>
             <label class="span-2">
               Подписи родителей / представителей
-              <input value="Ставятся на бумажном оригинале заявления" readonly />
+              <span class="readonly-note">Ставятся на бумажном оригинале заявления</span>
             </label>
           </div>
         </section>
@@ -256,7 +273,15 @@
             </label>
             <label>
               Дата оплаты
-              <input name="payment_date" type="date" required />
+              <input
+                name="payment_date"
+                class="date-input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="дд.мм.гггг"
+                required
+              />
             </label>
             <label>
               ФИО плательщика

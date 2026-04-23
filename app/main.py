@@ -127,10 +127,16 @@ async def config() -> dict:
 def _parse_date(raw: str | None) -> date | None:
     if not raw:
         return None
+    raw = raw.strip()
     try:
         return date.fromisoformat(raw)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=f"Некорректная дата: {raw}") from exc
+    except ValueError:
+        pass
+    try:
+        day, month, year = raw.replace("/", ".").replace("-", ".").split(".")
+        return date(int(year), int(month), int(day))
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=422, detail=f"Некорректная дата: {raw}. Используйте формат дд.мм.гггг.") from exc
 
 
 def _parse_decimal(raw: str | None) -> Decimal | None:

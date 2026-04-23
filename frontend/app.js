@@ -46,6 +46,45 @@ function todayLocalIso() {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
 
+function formatIsoDateForUser(isoDate) {
+  if (!isoDate) return "";
+  const [year, month, day] = isoDate.split("-");
+  if (!year || !month || !day) return "";
+  return `${day}.${month}.${year}`;
+}
+
+function normalizeDateValue(value) {
+  const raw = value.trim();
+  if (!raw) return "";
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return raw;
+
+  const ruMatch = raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (!ruMatch) {
+    throw new Error("Укажите дату в формате дд.мм.гггг.");
+  }
+
+  const [, dayRaw, monthRaw, year] = ruMatch;
+  const day = dayRaw.padStart(2, "0");
+  const month = monthRaw.padStart(2, "0");
+  const iso = `${year}-${month}-${day}`;
+  const parsed = new Date(`${iso}T00:00:00`);
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== Number(year) ||
+    parsed.getMonth() + 1 !== Number(month) ||
+    parsed.getDate() !== Number(day)
+  ) {
+    throw new Error("Проверьте дату: такой даты не существует.");
+  }
+  return iso;
+}
+
+function dateInputToIso(input) {
+  if (!input?.value) return "";
+  return normalizeDateValue(input.value);
+}
+
 function setStatus(message, kind = "") {
   statusEl.textContent = message;
   statusEl.className = `status ${kind}`;
@@ -101,8 +140,9 @@ function fullNameForPayment() {
 }
 
 function parseBirthDate() {
-  if (!birthDateInput?.value) return null;
-  const value = new Date(`${birthDateInput.value}T00:00:00`);
+  const isoDate = dateInputToIso(birthDateInput);
+  if (!isoDate) return null;
+  const value = new Date(`${isoDate}T00:00:00`);
   return Number.isNaN(value.getTime()) ? null : value;
 }
 
@@ -119,7 +159,12 @@ function isMinorByBirthDate() {
 }
 
 function needsParentConsent() {
-  return selectedApplicantMode() === "child" || isMinorByBirthDate();
+  if (selectedApplicantMode() === "child") return true;
+  try {
+    return isMinorByBirthDate();
+  } catch {
+    return false;
+  }
 }
 
 function syncPayerName() {
@@ -191,6 +236,15 @@ function validateParentConsent() {
   throw new Error("Для несовершеннолетнего укажите данные хотя бы одного родителя или законного представителя.");
 }
 
+function normalizeFormDates(data) {
+  const dateFields = ["birth_date", "statement_date", "payment_date"];
+  for (const field of dateFields) {
+    const input = form.elements[field];
+    if (!input?.value) continue;
+    data.set(field, normalizeDateValue(input.value));
+  }
+}
+
 async function loadConfig() {
   const response = await fetch("/api/config");
   config = await response.json();
@@ -210,6 +264,7 @@ async function submitForm(event) {
 
     const data = new FormData(form);
     data.set("init_data", tg?.initData || "");
+    normalizeFormDates(data);
     if (selectedApplicantMode() === "self") {
       data.set("member_last_name", "");
       data.set("member_first_name", "");
@@ -238,7 +293,7 @@ async function submitForm(event) {
     form.reset();
     payerTouched = false;
     if (statementDateInput) {
-      statementDateInput.value = todayLocalIso();
+      statementDateInput.value = formatIsoDateForUser(todayLocalIso());
     }
     syncApplicantMode();
     syncAmount();
@@ -287,7 +342,7 @@ if (initData) {
 }
 
 if (statementDateInput && !statementDateInput.value) {
-  statementDateInput.value = todayLocalIso();
+  statementDateInput.value = formatIsoDateForUser(todayLocalIso());
 }
 
 payerFullName?.addEventListener("input", () => {

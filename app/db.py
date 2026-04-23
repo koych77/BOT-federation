@@ -58,6 +58,13 @@ def _ensure_member_application_columns() -> None:
         "house": "VARCHAR(64)",
         "apartment": "VARCHAR(64)",
         "workplace": "VARCHAR(255)",
+        "passport_number": "VARCHAR(128)",
+        "passport_issued_by": "VARCHAR(255)",
+        "statement_date": "DATE",
+        "mother_full_name": "VARCHAR(255)",
+        "mother_workplace_position": "VARCHAR(255)",
+        "father_full_name": "VARCHAR(255)",
+        "father_workplace_position": "VARCHAR(255)",
     }
 
     inspector = inspect(engine)

@@ -153,6 +153,18 @@ def _join_name(last_name: str | None, first_name: str | None, middle_name: str |
     return " ".join(part for part in [last_name, first_name, middle_name] if part)
 
 
+def _requires_parent_consent(applicant_mode: str, birth_date_value: date | None) -> bool:
+    if applicant_mode == "child":
+        return True
+    if not birth_date_value:
+        return False
+    today = date.today()
+    age = today.year - birth_date_value.year - (
+        (today.month, today.day) < (birth_date_value.month, birth_date_value.day)
+    )
+    return age < 18
+
+
 @app.post("/api/applications")
 async def create_application(
     init_data: str = Form(""),
@@ -174,6 +186,13 @@ async def create_application(
     phone_mobile: str = Form(...),
     email: str | None = Form(None),
     workplace: str | None = Form(None),
+    passport_number: str | None = Form(None),
+    passport_issued_by: str | None = Form(None),
+    statement_date: str | None = Form(None),
+    mother_full_name: str | None = Form(None),
+    mother_workplace_position: str | None = Form(None),
+    father_full_name: str | None = Form(None),
+    father_workplace_position: str | None = Form(None),
     fee_type: str = Form(...),
     paid_amount: str | None = Form(None),
     payment_date: str | None = Form(None),
@@ -217,8 +236,21 @@ async def create_application(
     if applicant_mode == "child" and (not member_last_name or not member_first_name):
         raise HTTPException(status_code=422, detail="Для заявления за ребенка укажите фамилию и имя члена федерации.")
 
+    parsed_birth_date = _parse_date(birth_date)
+    parsed_statement_date = _parse_date(statement_date)
     member_full_name = _join_name(member_last_name, member_first_name, member_middle_name)
     applicant_full_name = _join_name(applicant_last_name, applicant_first_name, applicant_middle_name)
+
+    mother_full_name = _clean(mother_full_name)
+    mother_workplace_position = _clean(mother_workplace_position)
+    father_full_name = _clean(father_full_name)
+    father_workplace_position = _clean(father_workplace_position)
+
+    if _requires_parent_consent(applicant_mode, parsed_birth_date) and not (mother_full_name or father_full_name):
+        raise HTTPException(
+            status_code=422,
+            detail="Для несовершеннолетнего нужно указать данные хотя бы одного родителя или законного представителя.",
+        )
 
     expected_amount = expected_amount_for(fee_type, settings.entry_fee, settings.membership_fee)
     parsed_paid_amount = _parse_decimal(paid_amount)
@@ -269,7 +301,7 @@ async def create_application(
         member_first_name=member_first_name,
         member_middle_name=member_middle_name,
         full_name=member_full_name,
-        birth_date=_parse_date(birth_date),
+        birth_date=parsed_birth_date,
         region=_clean(region),
         phone=_clean(phone_mobile) or "",
         phone_home=_clean(phone_home),
@@ -279,10 +311,17 @@ async def create_application(
         street=_clean(street),
         house=_clean(house),
         apartment=_clean(apartment),
+        passport_number=_clean(passport_number),
+        passport_issued_by=_clean(passport_issued_by),
+        statement_date=parsed_statement_date,
         club=None,
         coach=None,
         role="member",
         workplace=_clean(workplace),
+        mother_full_name=mother_full_name,
+        mother_workplace_position=mother_workplace_position,
+        father_full_name=father_full_name,
+        father_workplace_position=father_workplace_position,
         application_type=application_type,
         membership_year=settings.membership_year,
         personal_data_consent=personal_data_consent,

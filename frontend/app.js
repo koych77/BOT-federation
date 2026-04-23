@@ -8,15 +8,21 @@ const paymentPurposeEl = document.querySelector("#paymentPurpose");
 const requestFormDoc = document.querySelector("#requestFormDoc");
 const payerFullName = document.querySelector("#payerFullName");
 const memberSection = document.querySelector("#memberSection");
+const parentConsentSection = document.querySelector("#parentConsentSection");
 const memberLastName = document.querySelector("#memberLastName");
 const memberFirstName = document.querySelector("#memberFirstName");
 const memberMiddleName = document.querySelector("#memberMiddleName");
+const motherFullName = document.querySelector("#motherFullName");
+const fatherFullName = document.querySelector("#fatherFullName");
 const paymentAmountValue = document.querySelector("#paymentAmountValue");
 const paymentFeeLabel = document.querySelector("#paymentFeeLabel");
 const paymentMemberName = document.querySelector("#paymentMemberName");
 const paymentPurposeValue = document.querySelector("#paymentPurposeValue");
 const jumpToReceiptButton = document.querySelector("#jumpToReceipt");
 const receiptSection = document.querySelector("#receiptSection");
+const birthDateInput = document.querySelector("#birthDate");
+const statementDateInput = document.querySelector("#statementDate");
+const signatureNamePreview = document.querySelector("#signatureNamePreview");
 const applicantModeInputs = [...document.querySelectorAll("input[name='applicant_mode']")];
 const feeInputs = [...document.querySelectorAll("input[name='fee_type']")];
 const applicantNameInputs = {
@@ -28,10 +34,17 @@ const applicantNameInputs = {
 let config = {
   entryFee: 45,
   membershipFee: 90,
+  membershipYear: 2026,
   currency: "BYN",
 };
 let lastSuggestedAmount = "";
 let payerTouched = false;
+
+function todayLocalIso() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
 
 function setStatus(message, kind = "") {
   statusEl.textContent = message;
@@ -67,15 +80,46 @@ function fullNameFromApplicant() {
     .join(" ");
 }
 
+function initialsWithLastName() {
+  const last = applicantNameInputs.last?.value?.trim() || "";
+  const first = applicantNameInputs.first?.value?.trim() || "";
+  const middle = applicantNameInputs.middle?.value?.trim() || "";
+  const firstInitial = first ? `${first[0]}.` : "";
+  const middleInitial = middle ? `${middle[0]}.` : "";
+  return [firstInitial, middleInitial, last].filter(Boolean).join(" ").trim();
+}
+
 function fullNameForPayment() {
   if (selectedApplicantMode() === "child") {
     const memberName = [memberLastName?.value, memberFirstName?.value, memberMiddleName?.value]
       .map((value) => value?.trim())
       .filter(Boolean)
       .join(" ");
-    return memberName || "Укажите Ф.И.О. члена федерации";
+    return memberName || "Укажите Ф.И.О. ребенка";
   }
   return fullNameFromApplicant() || "Заполните заявление выше";
+}
+
+function parseBirthDate() {
+  if (!birthDateInput?.value) return null;
+  const value = new Date(`${birthDateInput.value}T00:00:00`);
+  return Number.isNaN(value.getTime()) ? null : value;
+}
+
+function isMinorByBirthDate() {
+  const birthDate = parseBirthDate();
+  if (!birthDate) return false;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age -= 1;
+  }
+  return age < 18;
+}
+
+function needsParentConsent() {
+  return selectedApplicantMode() === "child" || isMinorByBirthDate();
 }
 
 function syncPayerName() {
@@ -83,11 +127,25 @@ function syncPayerName() {
   payerFullName.value = fullNameFromApplicant();
 }
 
+function syncSignaturePreview() {
+  if (!signatureNamePreview) return;
+  signatureNamePreview.value = initialsWithLastName();
+}
+
 function syncPaymentPreview() {
   paymentAmountValue.textContent = String(expectedAmount());
   paymentFeeLabel.textContent = selectedFeeLabel();
   paymentMemberName.textContent = fullNameForPayment();
   paymentPurposeValue.textContent = paymentPurposeEl.textContent.replace("Назначение: ", "");
+}
+
+function syncParentConsentSection() {
+  const visible = needsParentConsent();
+  parentConsentSection?.classList.toggle("hidden", !visible);
+  if (!visible) {
+    motherFullName.value = "";
+    fatherFullName.value = "";
+  }
 }
 
 function syncApplicantMode() {
@@ -101,6 +159,7 @@ function syncApplicantMode() {
     memberFirstName.value = "";
     memberMiddleName.value = "";
   }
+  syncParentConsentSection();
   syncPaymentPreview();
 }
 
@@ -126,6 +185,12 @@ function syncAmount() {
   syncPaymentPreview();
 }
 
+function validateParentConsent() {
+  if (!needsParentConsent()) return true;
+  if (motherFullName?.value.trim() || fatherFullName?.value.trim()) return true;
+  throw new Error("Для несовершеннолетнего укажите данные хотя бы одного родителя или законного представителя.");
+}
+
 async function loadConfig() {
   const response = await fetch("/api/config");
   config = await response.json();
@@ -141,12 +206,20 @@ async function submitForm(event) {
   button.disabled = true;
 
   try {
+    validateParentConsent();
+
     const data = new FormData(form);
     data.set("init_data", tg?.initData || "");
     if (selectedApplicantMode() === "self") {
       data.set("member_last_name", "");
       data.set("member_first_name", "");
       data.set("member_middle_name", "");
+    }
+    if (!needsParentConsent()) {
+      data.set("mother_full_name", "");
+      data.set("mother_workplace_position", "");
+      data.set("father_full_name", "");
+      data.set("father_workplace_position", "");
     }
 
     const response = await fetch("/api/applications", {
@@ -164,10 +237,15 @@ async function submitForm(event) {
     tg?.HapticFeedback?.notificationOccurred?.("success");
     form.reset();
     payerTouched = false;
+    if (statementDateInput) {
+      statementDateInput.value = todayLocalIso();
+    }
     syncApplicantMode();
     syncAmount();
     syncPayerName();
+    syncSignaturePreview();
     syncPaymentPreview();
+    syncParentConsentSection();
   } catch (error) {
     setStatus(error.message, "error");
     tg?.HapticFeedback?.notificationOccurred?.("error");
@@ -208,16 +286,22 @@ if (initData) {
   initData.value = tg?.initData || "";
 }
 
+if (statementDateInput && !statementDateInput.value) {
+  statementDateInput.value = todayLocalIso();
+}
+
 payerFullName?.addEventListener("input", () => {
   payerTouched = Boolean(payerFullName.value.trim());
 });
 Object.values(applicantNameInputs).forEach((input) => input?.addEventListener("input", syncPayerName));
 Object.values(applicantNameInputs).forEach((input) => input?.addEventListener("input", syncPaymentPreview));
+Object.values(applicantNameInputs).forEach((input) => input?.addEventListener("input", syncSignaturePreview));
 memberLastName?.addEventListener("input", syncPaymentPreview);
 memberFirstName?.addEventListener("input", syncPaymentPreview);
 memberMiddleName?.addEventListener("input", syncPaymentPreview);
 feeInputs.forEach((input) => input.addEventListener("change", syncAmount));
 applicantModeInputs.forEach((input) => input.addEventListener("change", syncApplicantMode));
+birthDateInput?.addEventListener("change", syncParentConsentSection);
 requestFormDoc?.addEventListener("click", requestFormDocument);
 jumpToReceiptButton?.addEventListener("click", () => {
   receiptSection?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -226,5 +310,7 @@ form.addEventListener("submit", submitForm);
 
 syncApplicantMode();
 syncPayerName();
+syncSignaturePreview();
 syncPaymentPreview();
+syncParentConsentSection();
 loadConfig().catch(() => setStatus("Не удалось загрузить настройки формы.", "error"));

@@ -257,6 +257,11 @@ select {
   background: #fff;
 }
 
+input[readonly] {
+  background: #f6f8f9;
+  color: #3d4a52;
+}
+
 input:focus,
 select:focus {
   outline: 3px solid #9ee6d2;

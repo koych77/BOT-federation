@@ -12,8 +12,11 @@
       <section class="hero">
         <div>
           <p class="kicker">Белорусская федерация брейкинга</p>
-          <h1>Заявление и членский взнос</h1>
-          <p class="lead">Заполните электронное заявление, укажите за что платили и приложите чек.</p>
+          <h1>Вступление и продление членства</h1>
+          <p class="lead">
+            Заполните заявление по официальному бланку, оплатите взнос и загрузите чек.
+            Бумажный оригинал заявления с подписью остается обязательным.
+          </p>
         </div>
         <div class="amounts" aria-label="Размеры взносов">
           <span><b id="entryFee">45</b> BYN вступительный</span>
@@ -26,69 +29,145 @@
 
         <section class="panel notice">
           <h2>Как это работает</h2>
-          <p>Эта анкета является электронным заявлением. Если федерации нужен бумажный оригинал, скачайте бланк, подпишите его и передайте администратору.</p>
-          <button class="doc-link" type="button" id="requestFormDoc">Получить бланк в Telegram</button>
-          <a class="browser-link" href="/forms/zayavlenie-na-vstuplenie-v-bfb/download" target="_blank" rel="noopener">Открыть файл в браузере</a>
-          <p class="hint form-command">Внутри MiniApp Telegram запрещает обычное скачивание файлов. Поэтому бот пришлет бланк документом в чат.</p>
+          <p>
+            Электронная анкета помогает собрать все данные сразу в системе. После заполнения
+            нужно сохранить бумажный оригинал: распечатать бланк, подписать и передать администратору.
+          </p>
+          <div class="actions-row">
+            <button class="doc-link" type="button" id="requestFormDoc">Получить бланк в Telegram</button>
+            <a class="browser-link" href="/forms/zayavlenie-na-vstuplenie-v-bfb/download" target="_blank" rel="noopener">
+              Открыть бланк в браузере
+            </a>
+          </div>
+          <p class="hint">
+            Внутри MiniApp Telegram обычное скачивание файлов работает нестабильно, поэтому бот отправит бланк документом в чат.
+          </p>
         </section>
 
         <section class="panel">
-          <h2>1. Данные участника</h2>
-          <p class="hint">Укажите данные человека, за которого подается заявление.</p>
+          <h2>1. Тип заявления</h2>
+          <div class="segmented">
+            <label><input type="radio" name="application_type" value="entry" checked /> Вступление</label>
+            <label><input type="radio" name="application_type" value="renewal" /> Продление членства</label>
+          </div>
+          <p class="hint">Это главное официальное поле заявления.</p>
+        </section>
+
+        <section class="panel">
+          <h2>2. Кто подает заявление</h2>
+          <div class="segmented">
+            <label><input type="radio" name="applicant_mode" value="self" checked /> Я</label>
+            <label><input type="radio" name="applicant_mode" value="child" /> Мой ребенок</label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>3. Данные заявителя</h2>
+          <p class="hint">
+            Укажите данные человека, который подает заявление. Если заявление подается за ребенка,
+            здесь нужно указать данные родителя или законного представителя.
+          </p>
           <div class="grid">
             <label>
-              ФИО полностью
-              <input name="full_name" autocomplete="name" placeholder="Иванов Иван Иванович" required />
+              Фамилия
+              <input name="applicant_last_name" autocomplete="family-name" required />
             </label>
             <label>
-              Дата рождения
-              <input name="birth_date" type="date" />
+              Имя
+              <input name="applicant_first_name" autocomplete="given-name" required />
             </label>
             <label>
-              Телефон
-              <input name="phone" autocomplete="tel" placeholder="+375..." required />
+              Отчество
+              <input name="applicant_middle_name" autocomplete="additional-name" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="memberSection">
+          <h2>4. Данные члена федерации</h2>
+          <p class="hint">
+            Этот блок нужен, если заявление подается за ребенка. Для личного вступления данные члена федерации совпадут с заявителем автоматически.
+          </p>
+          <div class="grid">
+            <label>
+              Фамилия члена федерации
+              <input name="member_last_name" id="memberLastName" />
             </label>
             <label>
-              Email
-              <input name="email" type="email" autocomplete="email" />
+              Имя члена федерации
+              <input name="member_first_name" id="memberFirstName" />
+            </label>
+            <label>
+              Отчество члена федерации
+              <input name="member_middle_name" id="memberMiddleName" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>5. Адрес и контакты</h2>
+          <div class="grid">
+            <label>
+              Область
+              <input name="region" placeholder="Минская область" required />
             </label>
             <label>
               Город
               <input name="city" placeholder="Минск" required />
             </label>
             <label>
-              Клуб / школа
-              <input name="club" placeholder="Название клуба или школы" />
+              Улица
+              <input name="street" placeholder="ул. Примерная" required />
             </label>
             <label>
-              Тренер
-              <input name="coach" placeholder="ФИО тренера" />
+              Дом
+              <input name="house" placeholder="12А" required />
             </label>
             <label>
-              Роль
-              <select name="role" required>
-                <option value="athlete">Спортсмен</option>
-                <option value="coach">Тренер</option>
-                <option value="judge">Судья</option>
-                <option value="representative">Представитель</option>
-                <option value="other">Другое</option>
-              </select>
+              Квартира
+              <input name="apartment" placeholder="34" />
+            </label>
+            <label>
+              Дата рождения члена федерации
+              <input name="birth_date" type="date" required />
+            </label>
+            <label>
+              Телефон домашний
+              <input name="phone_home" autocomplete="tel" />
+            </label>
+            <label>
+              Телефон мобильный
+              <input name="phone_mobile" autocomplete="tel" placeholder="+375..." required />
+            </label>
+            <label>
+              E-mail
+              <input name="email" type="email" autocomplete="email" />
+            </label>
+            <label class="span-2">
+              Место работы / учебы
+              <input name="workplace" placeholder="Организация, школа, вуз" />
             </label>
           </div>
         </section>
 
         <section class="panel">
-          <h2>2. Заявление</h2>
-          <p class="hint">Выберите, что именно оформляем: первое вступление или продление членства.</p>
-          <div class="segmented">
-            <label><input type="radio" name="application_type" value="entry" checked /> Вступление</label>
-            <label><input type="radio" name="application_type" value="renewal" /> Продление</label>
+          <h2>6. Оплата</h2>
+          <p class="hint">
+            Выберите, за что именно оплачивается взнос. Эти данные попадут в карточку заявки и в Excel-выгрузку.
+          </p>
+          <div class="info-card">
+            <strong>Путь ЕРИП</strong>
+            <ol class="erip-path">
+              <li>Благотворительность, общественные объединения</li>
+              <li>Прочие общественные объединения</li>
+              <li>Бел. федерация брейкинга</li>
+            </ol>
+            <p class="erip-note">
+              Обязательно указывайте Ф.И.О. за кого оплата. В ЕРИП доступны суммы:
+              вступительный взнос — 45 BYN, членский взнос — 90 BYN.
+            </p>
+            <button class="secondary-button" type="button" id="copyEripPath">Скопировать путь ЕРИП</button>
           </div>
-        </section>
-
-        <section class="panel">
-          <h2>3. За что оплата</h2>
-          <p class="hint">Это назначение попадет админам и в Excel. Так будет понятно, за какой взнос человек заплатил.</p>
           <div class="segmented">
             <label><input type="radio" name="fee_type" value="entry" /> Вступительный</label>
             <label><input type="radio" name="fee_type" value="membership" checked /> Членский</label>
@@ -99,11 +178,6 @@
             <strong><span id="expectedAmount">90</span> BYN</strong>
           </div>
           <p id="paymentPurpose" class="purpose">Назначение: членский взнос за 2026 год.</p>
-        </section>
-
-        <section class="panel">
-          <h2>4. Чек оплаты</h2>
-          <p class="hint">Лучше загружать PDF-чек из банка или ЕРИП. Фото и скрины бот пометит для ручной проверки.</p>
           <div class="grid">
             <label>
               Сумма оплаты, BYN
@@ -115,32 +189,42 @@
             </label>
             <label>
               ФИО плательщика
-              <input name="payer_full_name" placeholder="Как указано в оплате" required />
+              <input name="payer_full_name" id="payerFullName" placeholder="Как указано в чеке" required />
             </label>
             <label>
               Номер операции
               <input name="operation_id" placeholder="Если есть в чеке" />
             </label>
-            <label>
+            <label class="span-2">
               Канал оплаты
-              <input name="payment_channel" placeholder="ЕРИП, банк, карта" />
-            </label>
-            <label>
-              Файл чека
-              <input name="receipt" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" required />
+              <input name="payment_channel" placeholder="ЕРИП, банковское приложение, касса, карта" />
             </label>
           </div>
+        </section>
+
+        <section class="panel">
+          <h2>7. Чек оплаты</h2>
+          <p class="hint">
+            Лучше загружать PDF-чек из банка или ЕРИП. Фото и скриншоты тоже принимаются, но такие заявки чаще уходят на ручную проверку.
+          </p>
+          <label>
+            Файл чека
+            <input name="receipt" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" required />
+          </label>
         </section>
 
         <section class="panel notice">
           <h2>Что проверит бот</h2>
           <ul>
             <li>совпадает ли сумма с выбранным взносом;</li>
-            <li>не загружался ли такой чек раньше;</li>
+            <li>не загружался ли такой же чек раньше;</li>
             <li>не повторяется ли номер операции;</li>
-            <li>можно ли прочитать PDF-чек и найти в нем сумму, ФИО или номер операции.</li>
+            <li>читается ли PDF-чек и находит ли бот сумму, ФИО или номер операции.</li>
           </ul>
-          <p>Окончательное подтверждение поступления денег делает администратор по выписке или ЕРИП.</p>
+          <p>
+            Финальное подтверждение оплаты остается за администратором по выписке, банку или ЕРИП.
+            Бумажный оригинал заявления с подписью обязателен отдельно.
+          </p>
         </section>
 
         <section class="panel consent">
@@ -150,7 +234,7 @@
           </label>
           <label>
             <input name="data_accuracy_confirmed" type="checkbox" required />
-            Подтверждаю, что данные и чек оплаты указаны верно.
+            Подтверждаю, что данные заявления и чек оплаты указаны верно.
           </label>
         </section>
 

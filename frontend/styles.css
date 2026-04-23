@@ -37,7 +37,6 @@ body {
   margin: 0 0 14px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0;
   font-size: 13px;
 }
 
@@ -45,11 +44,10 @@ h1 {
   margin: 0;
   font-size: 40px;
   line-height: 1.08;
-  letter-spacing: 0;
 }
 
 .lead {
-  max-width: 620px;
+  max-width: 680px;
   margin: 16px 0 0;
   font-size: 18px;
   line-height: 1.5;
@@ -87,9 +85,16 @@ h1 {
 }
 
 .hint {
-  margin: -6px 0 18px;
+  margin: 10px 0 0;
   color: #526069;
   line-height: 1.45;
+}
+
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .doc-link {
@@ -115,7 +120,6 @@ h1 {
   display: inline-flex;
   min-height: 42px;
   align-items: center;
-  margin-left: 8px;
   color: #0d6f5c;
   font-weight: 900;
   text-decoration: none;
@@ -130,6 +134,41 @@ h1 {
   border-radius: 6px;
   background: #fff;
   font-weight: 800;
+  margin-top: 12px;
+}
+
+.info-card {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid #cfd8dd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.erip-path {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+.erip-note {
+  margin: 12px 0 0;
+  color: #234039;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.secondary-button {
+  margin-top: 12px;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: 1px solid #cfd8dd;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .purpose {
@@ -145,7 +184,7 @@ ul {
 }
 
 h2 {
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   font-size: 20px;
 }
 
@@ -153,6 +192,10 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.span-2 {
+  grid-column: 1 / -1;
 }
 
 label {
@@ -183,7 +226,6 @@ select:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
 }
 
 .segmented label {
@@ -200,6 +242,10 @@ select:focus {
 .segmented input {
   width: 18px;
   min-height: 18px;
+}
+
+.hidden {
+  display: none;
 }
 
 .consent {
@@ -268,6 +314,10 @@ select:focus {
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
   }
 
   .panel {

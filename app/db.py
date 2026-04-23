@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -39,6 +39,40 @@ def init_db() -> None:
     import app.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _ensure_member_application_columns()
+
+
+def _ensure_member_application_columns() -> None:
+    expected_columns = {
+        "applicant_mode": "VARCHAR(16) DEFAULT 'self'",
+        "applicant_last_name": "VARCHAR(128)",
+        "applicant_first_name": "VARCHAR(128)",
+        "applicant_middle_name": "VARCHAR(128)",
+        "member_last_name": "VARCHAR(128)",
+        "member_first_name": "VARCHAR(128)",
+        "member_middle_name": "VARCHAR(128)",
+        "region": "VARCHAR(128)",
+        "phone_home": "VARCHAR(64)",
+        "phone_mobile": "VARCHAR(64)",
+        "street": "VARCHAR(255)",
+        "house": "VARCHAR(64)",
+        "apartment": "VARCHAR(64)",
+        "workplace": "VARCHAR(255)",
+    }
+
+    inspector = inspect(engine)
+    try:
+        existing = {column["name"] for column in inspector.get_columns("member_applications")}
+    except Exception:
+        return
+
+    missing = {name: ddl for name, ddl in expected_columns.items() if name not in existing}
+    if not missing:
+        return
+
+    with engine.begin() as connection:
+        for name, ddl in missing.items():
+            connection.execute(text(f"ALTER TABLE member_applications ADD COLUMN {name} {ddl}"))
 
 
 def get_db() -> Generator[Session, None, None]:

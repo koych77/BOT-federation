@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import MemberApplication, Payment
-from app.services.labels import APPLICATION_TYPE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, ROLE_LABELS, label
+from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, label
 
 
 def _header(ws, labels: list[str]) -> None:
@@ -38,16 +38,27 @@ def build_members_export(db: Session) -> bytes:
         ws_members,
         [
             "ID",
-            "ФИО",
+            "ФИО члена",
+            "Тип заявителя",
+            "Фамилия заявителя",
+            "Имя заявителя",
+            "Отчество заявителя",
+            "Фамилия члена",
+            "Имя члена",
+            "Отчество члена",
             "Telegram ID",
             "Username",
-            "Телефон",
+            "Мобильный телефон",
+            "Домашний телефон",
             "Email",
+            "Область",
             "Город",
-            "Клуб",
-            "Тренер",
-            "Роль",
-            "Тип заявки",
+            "Улица",
+            "Дом",
+            "Квартира",
+            "Дата рождения",
+            "Место работы / учебы",
+            "Тип заявления",
             "Год",
             "Статус заявки",
             "Создано",
@@ -59,7 +70,7 @@ def build_members_export(db: Session) -> bytes:
         ws_payments,
         [
             "ID заявки",
-            "ФИО",
+            "ФИО члена",
             "Тип взноса",
             "Назначение оплаты",
             "Ожидаемая сумма",
@@ -78,7 +89,7 @@ def build_members_export(db: Session) -> bytes:
     )
 
     ws_checks = wb.create_sheet("Проверки")
-    _header(ws_checks, ["ID заявки", "ФИО", "Файл", "SHA256", "Размер", "MIME", "Заметки проверки"])
+    _header(ws_checks, ["ID заявки", "ФИО члена", "Файл", "SHA256", "Размер", "MIME", "Заметки проверки"])
 
     for app in rows:
         payment: Payment | None = app.payment
@@ -86,14 +97,25 @@ def build_members_export(db: Session) -> bytes:
             [
                 app.id,
                 app.full_name,
+                label(APPLICANT_MODE_LABELS, app.applicant_mode),
+                app.applicant_last_name,
+                app.applicant_first_name,
+                app.applicant_middle_name,
+                app.member_last_name,
+                app.member_first_name,
+                app.member_middle_name,
                 app.telegram_id,
                 app.telegram_username,
-                app.phone,
+                app.phone_mobile or app.phone,
+                app.phone_home,
                 app.email,
+                app.region,
                 app.city,
-                app.club,
-                app.coach,
-                label(ROLE_LABELS, app.role),
+                app.street,
+                app.house,
+                app.apartment,
+                app.birth_date.isoformat() if app.birth_date else "",
+                app.workplace,
                 label(APPLICATION_TYPE_LABELS, app.application_type),
                 app.membership_year,
                 app.status,

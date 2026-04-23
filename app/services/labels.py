@@ -9,12 +9,9 @@ APPLICATION_TYPE_LABELS = {
     "renewal": "Продление членства",
 }
 
-ROLE_LABELS = {
-    "athlete": "Спортсмен",
-    "coach": "Тренер",
-    "judge": "Судья",
-    "representative": "Представитель",
-    "other": "Другое",
+APPLICANT_MODE_LABELS = {
+    "self": "Заявитель",
+    "child": "Заявитель за ребенка",
 }
 
 AUTO_CHECK_LABELS = {

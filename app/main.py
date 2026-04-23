@@ -3,8 +3,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from aiogram import Bot
-from aiogram.types import FSInputFile
-from aiogram.types import Update
+from aiogram.types import FSInputFile, Update
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -89,7 +88,7 @@ async def request_application_form_doc(payload: FormDocumentRequest) -> dict:
         await bot.send_document(
             telegram_id,
             FSInputFile(path, filename="zayavlenie-na-vstuplenie-v-bfb.doc"),
-            caption="Бланк заявления на вступление в БФБ. Скачайте его из этого сообщения, заполните и передайте администратору.",
+            caption="Бланк заявления отправлен в чат. Его нужно распечатать, подписать и передать администратору.",
         )
     except Exception as exc:
         raise HTTPException(
@@ -99,7 +98,7 @@ async def request_application_form_doc(payload: FormDocumentRequest) -> dict:
     finally:
         await bot.session.close()
 
-    return {"message": "Бланк отправлен в чат с ботом. Откройте Telegram-сообщение и скачайте документ там."}
+    return {"message": "Бланк отправлен в чат с ботом. Бумажный оригинал с подписью остается обязательным."}
 
 
 def _application_form_file(content_disposition_type: str) -> FileResponse:
@@ -143,18 +142,38 @@ def _parse_decimal(raw: str | None) -> Decimal | None:
         raise HTTPException(status_code=422, detail=f"Некорректная сумма: {raw}") from exc
 
 
+def _clean(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    cleaned = raw.strip()
+    return cleaned or None
+
+
+def _join_name(last_name: str | None, first_name: str | None, middle_name: str | None) -> str:
+    return " ".join(part for part in [last_name, first_name, middle_name] if part)
+
+
 @app.post("/api/applications")
 async def create_application(
     init_data: str = Form(""),
-    full_name: str = Form(...),
-    birth_date: str | None = Form(None),
-    phone: str = Form(...),
-    email: str | None = Form(None),
-    city: str = Form(...),
-    club: str | None = Form(None),
-    coach: str | None = Form(None),
-    role: str = Form(...),
     application_type: str = Form(...),
+    applicant_mode: str = Form(...),
+    applicant_last_name: str = Form(...),
+    applicant_first_name: str = Form(...),
+    applicant_middle_name: str | None = Form(None),
+    member_last_name: str | None = Form(None),
+    member_first_name: str | None = Form(None),
+    member_middle_name: str | None = Form(None),
+    birth_date: str | None = Form(None),
+    region: str = Form(...),
+    city: str = Form(...),
+    street: str = Form(...),
+    house: str = Form(...),
+    apartment: str | None = Form(None),
+    phone_home: str | None = Form(None),
+    phone_mobile: str = Form(...),
+    email: str | None = Form(None),
+    workplace: str | None = Form(None),
     fee_type: str = Form(...),
     paid_amount: str | None = Form(None),
     payment_date: str | None = Form(None),
@@ -177,6 +196,30 @@ async def create_application(
     if not personal_data_consent or not data_accuracy_confirmed:
         raise HTTPException(status_code=422, detail="Нужно подтвердить согласия перед отправкой.")
 
+    applicant_mode = _clean(applicant_mode) or "self"
+    if applicant_mode not in {"self", "child"}:
+        raise HTTPException(status_code=422, detail="Некорректный тип заявителя.")
+
+    application_type = _clean(application_type) or "entry"
+    if application_type not in {"entry", "renewal"}:
+        raise HTTPException(status_code=422, detail="Некорректный тип заявления.")
+
+    applicant_last_name = _clean(applicant_last_name)
+    applicant_first_name = _clean(applicant_first_name)
+    applicant_middle_name = _clean(applicant_middle_name)
+    if not applicant_last_name or not applicant_first_name:
+        raise HTTPException(status_code=422, detail="Укажите фамилию и имя заявителя.")
+
+    member_last_name = _clean(member_last_name) or applicant_last_name
+    member_first_name = _clean(member_first_name) or applicant_first_name
+    member_middle_name = _clean(member_middle_name) or applicant_middle_name
+
+    if applicant_mode == "child" and (not member_last_name or not member_first_name):
+        raise HTTPException(status_code=422, detail="Для заявления за ребенка укажите фамилию и имя члена федерации.")
+
+    member_full_name = _join_name(member_last_name, member_first_name, member_middle_name)
+    applicant_full_name = _join_name(applicant_last_name, applicant_first_name, applicant_middle_name)
+
     expected_amount = expected_amount_for(fee_type, settings.entry_fee, settings.membership_fee)
     parsed_paid_amount = _parse_decimal(paid_amount)
     parsed_payment_date = _parse_date(payment_date)
@@ -188,6 +231,10 @@ async def create_application(
         receipt.filename or "receipt",
     )
 
+    payer_full_name = _clean(payer_full_name)
+    if not payer_full_name:
+        raise HTTPException(status_code=422, detail="Укажите ФИО плательщика.")
+
     auto_status, auto_notes = run_preliminary_checks(
         db,
         fee_type=fee_type,
@@ -195,8 +242,8 @@ async def create_application(
         paid_amount=parsed_paid_amount,
         payment_date=parsed_payment_date,
         payer_full_name=payer_full_name,
-        member_full_name=full_name,
-        operation_id=operation_id,
+        member_full_name=member_full_name,
+        operation_id=_clean(operation_id),
         receipt_sha256=receipt_sha256,
         receipt_size=receipt_size,
         content_type=receipt.content_type or "application/octet-stream",
@@ -205,8 +252,8 @@ async def create_application(
         receipt_scan_status=receipt_scan.status,
         receipt_scan_notes=receipt_scan.notes,
         receipt_text_has_amount=text_contains_amount(receipt_scan.text, parsed_paid_amount),
-        receipt_text_has_operation=text_contains_operation(receipt_scan.text, operation_id),
-        receipt_text_has_name=text_contains_name_part(receipt_scan.text, payer_full_name or full_name),
+        receipt_text_has_operation=text_contains_operation(receipt_scan.text, _clean(operation_id)),
+        receipt_text_has_name=text_contains_name_part(receipt_scan.text, payer_full_name or member_full_name),
     )
 
     application = MemberApplication(
@@ -214,14 +261,28 @@ async def create_application(
         telegram_username=telegram_user.get("username"),
         telegram_first_name=telegram_user.get("first_name"),
         telegram_last_name=telegram_user.get("last_name"),
-        full_name=full_name.strip(),
+        applicant_mode=applicant_mode,
+        applicant_last_name=applicant_last_name,
+        applicant_first_name=applicant_first_name,
+        applicant_middle_name=applicant_middle_name,
+        member_last_name=member_last_name,
+        member_first_name=member_first_name,
+        member_middle_name=member_middle_name,
+        full_name=member_full_name,
         birth_date=_parse_date(birth_date),
-        phone=phone.strip(),
-        email=email.strip() if email else None,
-        city=city.strip(),
-        club=club.strip() if club else None,
-        coach=coach.strip() if coach else None,
-        role=role,
+        region=_clean(region),
+        phone=_clean(phone_mobile) or "",
+        phone_home=_clean(phone_home),
+        phone_mobile=_clean(phone_mobile),
+        email=_clean(email),
+        city=_clean(city) or "",
+        street=_clean(street),
+        house=_clean(house),
+        apartment=_clean(apartment),
+        club=None,
+        coach=None,
+        role="member",
+        workplace=_clean(workplace),
         application_type=application_type,
         membership_year=settings.membership_year,
         personal_data_consent=personal_data_consent,
@@ -237,9 +298,9 @@ async def create_application(
         expected_amount=expected_amount,
         paid_amount=parsed_paid_amount,
         payment_date=parsed_payment_date,
-        payer_full_name=payer_full_name.strip(),
-        operation_id=operation_id.strip() if operation_id else None,
-        payment_channel=payment_channel.strip() if payment_channel else None,
+        payer_full_name=payer_full_name,
+        operation_id=_clean(operation_id),
+        payment_channel=_clean(payment_channel),
         receipt_original_name=receipt.filename or "receipt",
         receipt_content_type=receipt.content_type or "application/octet-stream",
         receipt_size=receipt_size,
@@ -260,7 +321,12 @@ async def create_application(
         "id": application.id,
         "status": application.status,
         "autoCheckStatus": payment.auto_check_status,
-        "message": "Заявка отправлена. Бот выполнил первичную проверку чека, администратор получит статус и примет финальное решение.",
+        "memberFullName": member_full_name,
+        "applicantFullName": applicant_full_name,
+        "message": (
+            "Заявление и чек отправлены. Бот выполнил первичную проверку оплаты. "
+            "Дальше администратор сверит платеж, а бумажный оригинал заявления нужно передать отдельно."
+        ),
     }
 
 

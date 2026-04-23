@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import SessionLocal
 from app.models import MemberApplication, Payment
-from app.services.labels import APPLICATION_TYPE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, ROLE_LABELS, label
+from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, label
 from app.services.storage import read_receipt_bytes
 
 router = Router()
@@ -35,13 +35,16 @@ def admin_keyboard(payment_id: int) -> InlineKeyboardMarkup:
 @router.message(Command("start"))
 async def start(message: Message) -> None:
     settings = get_settings()
-    text = "Здравствуйте! Здесь можно подать анкету в БФБ и загрузить подтверждение оплаты."
+    text = (
+        "Здравствуйте! Здесь можно заполнить заявление на вступление или продление членства, "
+        "загрузить чек оплаты и получить официальный бланк для подписи."
+    )
     if settings.webapp_url.startswith("https://"):
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="Открыть анкету",
+                        text="Открыть заявление",
                         web_app=WebAppInfo(url=settings.webapp_url),
                     )
                 ]
@@ -63,7 +66,7 @@ async def admin(message: Message) -> None:
     export_url = f"{settings.webapp_url.rstrip('/')}/admin/export.xlsx"
     if settings.admin_export_token:
         export_url += f"?token={settings.admin_export_token}"
-    await message.answer(f"Админ-панель MVP: выгрузка Excel\n{export_url}")
+    await message.answer(f"Выгрузка Excel:\n{export_url}")
 
 
 @router.message(Command("id"))
@@ -85,7 +88,10 @@ async def send_application_form_document(message: Message) -> None:
         return
     await message.answer_document(
         FSInputFile(FORM_PATH, filename="zayavlenie-na-vstuplenie-v-bfb.doc"),
-        caption="Бланк заявления на вступление в БФБ. Его можно скачать, заполнить и передать администратору.",
+        caption=(
+            "Бланк заявления на вступление в БФБ. Его можно скачать, распечатать, подписать "
+            "и передать администратору как бумажный оригинал."
+        ),
     )
 
 
@@ -131,7 +137,10 @@ async def _set_payment_status(callback: CallbackQuery, status: str, user_text: s
     if telegram_id and settings.bot_token:
         bot = Bot(settings.bot_token)
         try:
-            await bot.send_message(telegram_id, f"{user_text} Заявка #{payment.application_id}.")
+            await bot.send_message(
+                telegram_id,
+                f"{user_text} Заявка #{payment.application_id}. Помните, что бумажный оригинал заявления остается обязательным.",
+            )
         finally:
             await bot.session.close()
 
@@ -140,6 +149,25 @@ def build_dispatcher() -> Dispatcher:
     dp = Dispatcher()
     dp.include_router(router)
     return dp
+
+
+def _person_line(application: MemberApplication) -> str:
+    applicant_name = " ".join(
+        part
+        for part in [application.applicant_last_name, application.applicant_first_name, application.applicant_middle_name]
+        if part
+    ) or "-"
+    member_name = " ".join(
+        part
+        for part in [application.member_last_name, application.member_first_name, application.member_middle_name]
+        if part
+    ) or application.full_name
+    mode = label(APPLICANT_MODE_LABELS, application.applicant_mode)
+    return (
+        f"Тип заявителя: {mode}\n"
+        f"Заявитель: {applicant_name}\n"
+        f"Член федерации: {member_name}"
+    )
 
 
 async def notify_admins(application: MemberApplication, payment: Payment, db: Session) -> None:
@@ -156,30 +184,34 @@ async def notify_admins(application: MemberApplication, payment: Payment, db: Se
     notes = "\n".join(f"- {item}" for item in note_items[:8])
     auto_label = label(AUTO_CHECK_LABELS, payment.auto_check_status)
     decision_line = (
-        "Решение бота: можно проверять быстро, формальные признаки совпали."
+        "Решение бота: формальные признаки оплаты совпали, нужна финальная сверка администратором."
         if payment.auto_check_status == "ready_for_admin_approval"
         else "Решение бота: нужна ручная проверка администратором."
     )
     text = (
         f"Новая заявка #{application.id}\n"
-        f"\nУчастник\n"
-        f"ФИО: {application.full_name}\n"
-        f"Телефон: {application.phone}\n"
-        f"Город: {application.city}\n"
-        f"Клуб: {application.club or '-'}\n"
-        f"Роль: {label(ROLE_LABELS, application.role)}\n"
-        f"\nЗаявление и оплата\n"
-        f"Тип заявки: {label(APPLICATION_TYPE_LABELS, application.application_type)}\n"
+        f"\nЗаявление\n"
+        f"Тип заявления: {label(APPLICATION_TYPE_LABELS, application.application_type)}\n"
+        f"{_person_line(application)}\n"
+        f"Дата рождения: {application.birth_date or '-'}\n"
+        f"Адрес: {application.region or '-'}, {application.city}, {application.street or '-'}, дом {application.house or '-'}, кв. {application.apartment or '-'}\n"
+        f"Телефон мобильный: {application.phone_mobile or application.phone}\n"
+        f"Телефон домашний: {application.phone_home or '-'}\n"
+        f"E-mail: {application.email or '-'}\n"
+        f"Место работы / учебы: {application.workplace or '-'}\n"
+        f"\nОплата\n"
         f"Назначение оплаты: {label(FEE_LABELS, payment.fee_type)}\n"
         f"Год членства: {application.membership_year}\n"
         f"Сумма: {payment.paid_amount} / ожидается {payment.expected_amount} BYN\n"
         f"Дата оплаты: {payment.payment_date or '-'}\n"
         f"Плательщик: {payment.payer_full_name}\n"
         f"Операция: {payment.operation_id or '-'}\n"
+        f"Канал оплаты: {payment.payment_channel or '-'}\n"
         f"\nАвтопроверка\n"
         f"Статус: {auto_label}\n"
         f"{decision_line}\n"
-        f"{notes}"
+        f"{notes}\n"
+        f"\nВажно: после подтверждения оплаты нужен бумажный оригинал заявления с подписью."
     )
 
     bot = Bot(settings.bot_token)

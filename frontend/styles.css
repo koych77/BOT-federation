@@ -90,6 +90,10 @@ h1 {
   line-height: 1.45;
 }
 
+.hint.compact {
+  margin-top: 8px;
+}
+
 .actions-row {
   display: flex;
   flex-wrap: wrap;

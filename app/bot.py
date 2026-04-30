@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import SessionLocal
 from app.models import MemberApplication, Payment
-from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, label
+from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, ROLE_LABELS, label
 from app.services.storage import read_receipt_bytes
 
 router = Router()
@@ -193,6 +193,10 @@ async def notify_admins(application: MemberApplication, payment: Payment, db: Se
         f"\nЗаявление\n"
         f"Тип заявления: {label(APPLICATION_TYPE_LABELS, application.application_type)}\n"
         f"{_person_line(application)}\n"
+        f"Гражданство: {application.citizenship or '-'}\n"
+        f"Категория по бланку: {label(ROLE_LABELS, application.role)}"
+        f"{f' ({application.role_other})' if application.role == 'other' and application.role_other else ''}\n"
+        f"С Уставом ознакомлен(а): {'да' if application.statute_accepted else 'нет'}\n"
         f"Дата рождения: {application.birth_date or '-'}\n"
         f"Адрес: {application.region or '-'}, {application.city}, {application.street or '-'}, дом {application.house or '-'}, кв. {application.apartment or '-'}\n"
         f"Телефон мобильный: {application.phone_mobile or application.phone}\n"

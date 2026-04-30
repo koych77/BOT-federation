@@ -33,6 +33,8 @@ frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 forms_dir = Path(__file__).resolve().parent.parent / "assets" / "forms"
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
+ALLOWED_ROLES = {"presidium", "dancer", "trainer", "veteran", "organizer", "dj", "mc", "photo_video", "other"}
+
 
 class FormDocumentRequest(BaseModel):
     initData: str = ""
@@ -179,6 +181,7 @@ async def create_application(
     applicant_last_name: str = Form(...),
     applicant_first_name: str = Form(...),
     applicant_middle_name: str | None = Form(None),
+    citizenship: str | None = Form(None),
     member_last_name: str | None = Form(None),
     member_first_name: str | None = Form(None),
     member_middle_name: str | None = Form(None),
@@ -199,12 +202,15 @@ async def create_application(
     mother_workplace_position: str | None = Form(None),
     father_full_name: str | None = Form(None),
     father_workplace_position: str | None = Form(None),
+    role: str | None = Form(None),
+    role_other: str | None = Form(None),
     fee_type: str = Form(...),
     paid_amount: str | None = Form(None),
     payment_date: str | None = Form(None),
     payer_full_name: str = Form(...),
     operation_id: str | None = Form(None),
     payment_channel: str | None = Form(None),
+    statute_accepted: bool = Form(False),
     personal_data_consent: bool = Form(...),
     data_accuracy_confirmed: bool = Form(...),
     receipt: UploadFile = File(...),
@@ -217,6 +223,9 @@ async def create_application(
         telegram_user = parse_telegram_init_data(init_data, settings.bot_token)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    if not statute_accepted:
+        raise HTTPException(status_code=422, detail="Нужно подтвердить, что заявитель ознакомлен с Уставом объединения.")
 
     if not personal_data_consent or not data_accuracy_confirmed:
         raise HTTPException(status_code=422, detail="Нужно подтвердить согласия перед отправкой.")
@@ -235,6 +244,8 @@ async def create_application(
     if not applicant_last_name or not applicant_first_name:
         raise HTTPException(status_code=422, detail="Укажите фамилию и имя заявителя.")
 
+    citizenship = _clean(citizenship) or "Республика Беларусь"
+
     member_last_name = _clean(member_last_name) or applicant_last_name
     member_first_name = _clean(member_first_name) or applicant_first_name
     member_middle_name = _clean(member_middle_name) or applicant_middle_name
@@ -251,6 +262,12 @@ async def create_application(
     mother_workplace_position = _clean(mother_workplace_position)
     father_full_name = _clean(father_full_name)
     father_workplace_position = _clean(father_workplace_position)
+    role = _clean(role) or "dancer"
+    role_other = _clean(role_other)
+    if role not in ALLOWED_ROLES:
+        raise HTTPException(status_code=422, detail="Некорректная категория по бланку заявления.")
+    if role == "other" and not role_other:
+        raise HTTPException(status_code=422, detail="Для категории «Иное» укажите пояснение.")
 
     if _requires_parent_consent(applicant_mode, parsed_birth_date) and not (mother_full_name or father_full_name):
         raise HTTPException(
@@ -303,6 +320,7 @@ async def create_application(
         applicant_last_name=applicant_last_name,
         applicant_first_name=applicant_first_name,
         applicant_middle_name=applicant_middle_name,
+        citizenship=citizenship,
         member_last_name=member_last_name,
         member_first_name=member_first_name,
         member_middle_name=member_middle_name,
@@ -322,7 +340,8 @@ async def create_application(
         statement_date=parsed_statement_date,
         club=None,
         coach=None,
-        role="member",
+        role=role,
+        role_other=role_other,
         workplace=_clean(workplace),
         mother_full_name=mother_full_name,
         mother_workplace_position=mother_workplace_position,
@@ -330,6 +349,7 @@ async def create_application(
         father_workplace_position=father_workplace_position,
         application_type=application_type,
         membership_year=settings.membership_year,
+        statute_accepted=statute_accepted,
         personal_data_consent=personal_data_consent,
         data_accuracy_confirmed=data_accuracy_confirmed,
         status="submitted",

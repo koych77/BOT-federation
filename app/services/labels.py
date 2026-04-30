@@ -14,6 +14,19 @@ APPLICANT_MODE_LABELS = {
     "child": "Заявитель за ребенка",
 }
 
+ROLE_LABELS = {
+    "member": "Член федерации",
+    "presidium": "Член Президиума",
+    "dancer": "Танцор",
+    "trainer": "Тренер",
+    "veteran": "Ветеран",
+    "organizer": "Организатор",
+    "dj": "Ди-джей",
+    "mc": "МС",
+    "photo_video": "Фото-видео",
+    "other": "Иное",
+}
+
 AUTO_CHECK_LABELS = {
     "ready_for_admin_approval": "Бот проверил формальные признаки. Нужна финальная сверка админом.",
     "needs_manual_review": "Нужна ручная проверка администратором.",

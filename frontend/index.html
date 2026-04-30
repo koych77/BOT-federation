@@ -11,6 +11,7 @@
     <main class="shell">
       <section class="hero">
         <div>
+          <img class="hero-logo" src="/static/bbf-logo.png" alt="BBF" />
           <p class="kicker">Белорусская федерация брейкинга</p>
           <h1>Вступление и продление членства</h1>
           <p class="lead">
@@ -85,6 +86,10 @@
               Отчество
               <input name="applicant_middle_name" autocomplete="additional-name" />
             </label>
+            <label>
+              Гражданство
+              <input name="citizenship" value="Республика Беларусь" required />
+            </label>
           </div>
         </section>
 
@@ -111,7 +116,38 @@
         </section>
 
         <section class="panel">
-          <h2>5. Адрес и контакты</h2>
+          <h2>5. Устав и категория по бланку</h2>
+          <p class="hint">
+            Эти пункты есть в официальном заявлении. Категория нужна для внутреннего учета федерации.
+          </p>
+          <div class="grid">
+            <label class="span-2">
+              Категория
+              <select name="role" id="roleSelect" required>
+                <option value="presidium">Член Президиума</option>
+                <option value="dancer" selected>Танцор</option>
+                <option value="trainer">Тренер</option>
+                <option value="veteran">Ветеран</option>
+                <option value="organizer">Организатор</option>
+                <option value="dj">Ди-джей</option>
+                <option value="mc">МС</option>
+                <option value="photo_video">Фото-видео</option>
+                <option value="other">Иное</option>
+              </select>
+            </label>
+            <label class="span-2 hidden" id="roleOtherWrap">
+              Если выбрано «Иное», укажите категорию
+              <input name="role_other" id="roleOtherInput" />
+            </label>
+          </div>
+          <label class="checkbox-line">
+            <input name="statute_accepted" type="checkbox" required />
+            С Уставом ознакомлен(а), обязуюсь выполнять. Цели и задачи объединения разделяю.
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>6. Адрес и контакты</h2>
           <div class="grid">
             <label>
               Область
@@ -166,7 +202,7 @@
         </section>
 
         <section class="panel">
-          <h2>6. Паспорт и данные заявления</h2>
+          <h2>7. Паспорт и данные заявления</h2>
           <p class="hint">
             Этот блок нужен по официальному бланку заявления. Подпись ставится только на бумажном оригинале, который
             нужно распечатать и передать администратору.
@@ -204,7 +240,7 @@
         </section>
 
         <section class="panel hidden" id="parentConsentSection">
-          <h2>7. Согласие родителей или законных представителей</h2>
+          <h2>8. Согласие родителей или законных представителей</h2>
           <p class="hint">
             Этот раздел нужен для несовершеннолетних. Заполните данные хотя бы одного родителя или законного
             представителя. Подписи ставятся на бумажном оригинале заявления.
@@ -234,7 +270,7 @@
         </section>
 
         <section class="panel">
-          <h2>8. Оплата</h2>
+          <h2>9. Оплата</h2>
           <p class="hint">
             Выберите, за что именно оплачивается взнос. Эти данные попадут в карточку заявки и в Excel-выгрузку.
           </p>
@@ -324,7 +360,7 @@
         </section>
 
         <section class="panel" id="receiptSection">
-          <h2>9. Чек оплаты</h2>
+          <h2>10. Чек оплаты</h2>
           <p class="hint">
             Лучше загружать PDF-чек из банка или ЕРИП. Фото и скриншоты тоже принимаются, но такие заявки чаще
             уходят на ручную проверку.

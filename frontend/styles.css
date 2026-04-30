@@ -33,6 +33,14 @@ body {
   border-radius: 8px;
 }
 
+.hero-logo {
+  display: block;
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+  margin: 0 0 16px;
+}
+
 .kicker {
   margin: 0 0 14px;
   font-weight: 800;
@@ -340,13 +348,20 @@ select:focus {
   gap: 14px;
 }
 
-.consent label {
+.consent label,
+.checkbox-line {
   grid-template-columns: 22px 1fr;
   align-items: start;
 }
 
-.consent input {
+.consent input,
+.checkbox-line input {
   min-height: 18px;
+}
+
+.checkbox-line {
+  display: grid;
+  margin-top: 16px;
 }
 
 .submit {
@@ -390,6 +405,11 @@ select:focus {
     align-items: stretch;
     flex-direction: column;
     padding: 24px;
+  }
+
+  .hero-logo {
+    width: 66px;
+    height: 66px;
   }
 
   h1 {

@@ -20,6 +20,7 @@ class MemberApplication(Base):
     applicant_last_name: Mapped[str | None] = mapped_column(String(128))
     applicant_first_name: Mapped[str | None] = mapped_column(String(128))
     applicant_middle_name: Mapped[str | None] = mapped_column(String(128))
+    citizenship: Mapped[str | None] = mapped_column(String(128))
 
     member_last_name: Mapped[str | None] = mapped_column(String(128))
     member_first_name: Mapped[str | None] = mapped_column(String(128))
@@ -41,6 +42,7 @@ class MemberApplication(Base):
     club: Mapped[str | None] = mapped_column(String(255))
     coach: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(64))
+    role_other: Mapped[str | None] = mapped_column(String(255))
     workplace: Mapped[str | None] = mapped_column(String(255))
     mother_full_name: Mapped[str | None] = mapped_column(String(255))
     mother_workplace_position: Mapped[str | None] = mapped_column(String(255))
@@ -49,6 +51,7 @@ class MemberApplication(Base):
 
     application_type: Mapped[str] = mapped_column(String(32))
     membership_year: Mapped[int] = mapped_column(Integer, index=True)
+    statute_accepted: Mapped[bool] = mapped_column(Boolean, default=False)
     personal_data_consent: Mapped[bool] = mapped_column(Boolean, default=False)
     data_accuracy_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(32), default="submitted", index=True)

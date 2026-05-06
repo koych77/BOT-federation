@@ -33,7 +33,7 @@ frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 forms_dir = Path(__file__).resolve().parent.parent / "assets" / "forms"
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
-ALLOWED_ROLES = {"presidium", "dancer", "trainer", "veteran", "organizer", "dj", "mc", "photo_video", "other"}
+ALLOWED_ROLES = {"member", "presidium", "dancer", "trainer", "veteran", "organizer", "dj", "mc", "photo_video", "other"}
 
 
 class FormDocumentRequest(BaseModel):
@@ -224,9 +224,6 @@ async def create_application(
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
-    if not statute_accepted:
-        raise HTTPException(status_code=422, detail="Нужно подтвердить, что заявитель ознакомлен с Уставом объединения.")
-
     if not personal_data_consent or not data_accuracy_confirmed:
         raise HTTPException(status_code=422, detail="Нужно подтвердить согласия перед отправкой.")
 
@@ -262,7 +259,7 @@ async def create_application(
     mother_workplace_position = _clean(mother_workplace_position)
     father_full_name = _clean(father_full_name)
     father_workplace_position = _clean(father_workplace_position)
-    role = _clean(role) or "dancer"
+    role = _clean(role) or "member"
     role_other = _clean(role_other)
     if role not in ALLOWED_ROLES:
         raise HTTPException(status_code=422, detail="Некорректная категория по бланку заявления.")

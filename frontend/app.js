@@ -23,9 +23,6 @@ const receiptSection = document.querySelector("#receiptSection");
 const birthDateInput = document.querySelector("#birthDate");
 const statementDateInput = document.querySelector("#statementDate");
 const signatureNamePreview = document.querySelector("#signatureNamePreview");
-const roleSelect = document.querySelector("#roleSelect");
-const roleOtherWrap = document.querySelector("#roleOtherWrap");
-const roleOtherInput = document.querySelector("#roleOtherInput");
 const applicantModeInputs = [...document.querySelectorAll("input[name='applicant_mode']")];
 const feeInputs = [...document.querySelectorAll("input[name='fee_type']")];
 const applicantNameInputs = {
@@ -196,17 +193,6 @@ function syncParentConsentSection() {
   }
 }
 
-function syncRoleOther() {
-  const isOther = roleSelect?.value === "other";
-  roleOtherWrap?.classList.toggle("hidden", !isOther);
-  if (roleOtherInput) {
-    roleOtherInput.required = Boolean(isOther);
-    if (!isOther) {
-      roleOtherInput.value = "";
-    }
-  }
-}
-
 function syncApplicantMode() {
   const isChild = selectedApplicantMode() === "child";
   memberSection?.classList.toggle("hidden", !isChild);
@@ -315,7 +301,6 @@ async function submitForm(event) {
     syncSignaturePreview();
     syncPaymentPreview();
     syncParentConsentSection();
-    syncRoleOther();
   } catch (error) {
     setStatus(error.message, "error");
     tg?.HapticFeedback?.notificationOccurred?.("error");
@@ -372,7 +357,6 @@ memberMiddleName?.addEventListener("input", syncPaymentPreview);
 feeInputs.forEach((input) => input.addEventListener("change", syncAmount));
 applicantModeInputs.forEach((input) => input.addEventListener("change", syncApplicantMode));
 birthDateInput?.addEventListener("change", syncParentConsentSection);
-roleSelect?.addEventListener("change", syncRoleOther);
 requestFormDoc?.addEventListener("click", requestFormDocument);
 jumpToReceiptButton?.addEventListener("click", () => {
   receiptSection?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -384,5 +368,4 @@ syncPayerName();
 syncSignaturePreview();
 syncPaymentPreview();
 syncParentConsentSection();
-syncRoleOther();
 loadConfig().catch(() => setStatus("Не удалось загрузить настройки формы.", "error"));

@@ -339,20 +339,13 @@ select:focus {
   gap: 14px;
 }
 
-.consent label,
-.checkbox-line {
+.consent label {
   grid-template-columns: 22px 1fr;
   align-items: start;
 }
 
-.consent input,
-.checkbox-line input {
+.consent input {
   min-height: 18px;
-}
-
-.checkbox-line {
-  display: grid;
-  margin-top: 16px;
 }
 
 .submit {

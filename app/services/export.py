@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import MemberApplication, Payment
-from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, ROLE_LABELS, label
+from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, label
 
 
 def _header(ws, labels: list[str]) -> None:
@@ -47,9 +47,6 @@ def build_members_export(db: Session) -> bytes:
             "Фамилия члена",
             "Имя члена",
             "Отчество члена",
-            "Категория по бланку",
-            "Иное: пояснение",
-            "С Уставом ознакомлен(а)",
             "Telegram ID",
             "Username",
             "Мобильный телефон",
@@ -116,9 +113,6 @@ def build_members_export(db: Session) -> bytes:
                 app.member_last_name,
                 app.member_first_name,
                 app.member_middle_name,
-                label(ROLE_LABELS, app.role),
-                app.role_other,
-                "да" if app.statute_accepted else "нет",
                 app.telegram_id,
                 app.telegram_username,
                 app.phone_mobile or app.phone,

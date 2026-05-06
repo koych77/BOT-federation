@@ -1,3 +1,4 @@
+import hashlib
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -5,7 +6,7 @@ from pathlib import Path
 from aiogram import Bot
 from aiogram.types import FSInputFile, Update
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -40,6 +41,15 @@ class FormDocumentRequest(BaseModel):
     initData: str = ""
 
 
+def _asset_version() -> str:
+    digest = hashlib.sha256()
+    for filename in ("index.html", "app.js", "styles.css", "bbf-logo.png"):
+        path = frontend_dir / filename
+        if path.exists():
+            digest.update(path.read_bytes())
+    return digest.hexdigest()[:12]
+
+
 @app.on_event("startup")
 async def startup() -> None:
     init_db()
@@ -53,8 +63,19 @@ async def startup() -> None:
 
 
 @app.get("/")
-async def index() -> FileResponse:
-    return FileResponse(frontend_dir / "index.html")
+async def index() -> HTMLResponse:
+    version = _asset_version()
+    html = (frontend_dir / "index.html").read_text(encoding="utf-8")
+    html = html.replace("/static/styles.css", f"/static/styles.css?v={version}")
+    html = html.replace("/static/app.js", f"/static/app.js?v={version}")
+    html = html.replace("/static/bbf-logo.png", f"/static/bbf-logo.png?v={version}")
+    return HTMLResponse(
+        html,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )
 
 
 @app.get("/forms/zayavlenie-na-vstuplenie-v-bfb.doc")

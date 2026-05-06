@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.db import SessionLocal
 from app.models import MemberApplication, Payment
+from app.services.backup import build_backup_archive
+from app.services.export import build_members_export
 from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, label
 from app.services.storage import read_receipt_bytes
 
@@ -66,7 +68,42 @@ async def admin(message: Message) -> None:
     export_url = f"{settings.webapp_url.rstrip('/')}/admin/export.xlsx"
     if settings.admin_export_token:
         export_url += f"?token={settings.admin_export_token}"
-    await message.answer(f"Выгрузка Excel:\n{export_url}")
+    await message.answer(
+        "Админ-команды:\n"
+        "/export - получить Excel в чат\n"
+        "/backup - получить архив Excel + чеки\n\n"
+        f"Ссылка на Excel:\n{export_url}"
+    )
+
+
+@router.message(Command("export"))
+async def send_export(message: Message) -> None:
+    settings = get_settings()
+    if not _is_admin(message.from_user.id if message.from_user else None, settings):
+        await message.answer("Эта команда доступна только администраторам.")
+        return
+
+    with SessionLocal() as db:
+        content = build_members_export(db)
+    await message.answer_document(
+        BufferedInputFile(content, filename="bfb_members.xlsx"),
+        caption="Актуальная Excel-выгрузка заявок и оплат.",
+    )
+
+
+@router.message(Command("backup"))
+async def send_backup(message: Message) -> None:
+    settings = get_settings()
+    if not _is_admin(message.from_user.id if message.from_user else None, settings):
+        await message.answer("Эта команда доступна только администраторам.")
+        return
+
+    with SessionLocal() as db:
+        content = build_backup_archive(settings, db)
+    await message.answer_document(
+        BufferedInputFile(content, filename="bfb_backup.zip"),
+        caption="Архив: Excel-выгрузка и все доступные чеки.",
+    )
 
 
 @router.message(Command("id"))

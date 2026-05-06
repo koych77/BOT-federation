@@ -16,6 +16,7 @@ from app.config import get_settings
 from app.db import get_db, init_db
 from app.models import MemberApplication, Payment
 from app.security import parse_telegram_init_data
+from app.services.backup import build_backup_archive
 from app.services.export import build_members_export
 from app.services.payment_checks import expected_amount_for, run_preliminary_checks
 from app.services.receipt_scanner import (
@@ -134,6 +135,13 @@ def _application_form_file(content_disposition_type: str) -> FileResponse:
         filename="zayavlenie-na-vstuplenie-v-bfb.doc",
         content_disposition_type=content_disposition_type,
     )
+
+
+def _require_admin_export_token(token: str | None) -> None:
+    if settings.public_base_url and not settings.admin_export_token:
+        raise HTTPException(status_code=503, detail="Для публичной выгрузки задайте ADMIN_EXPORT_TOKEN.")
+    if settings.admin_export_token and token != settings.admin_export_token:
+        raise HTTPException(status_code=403, detail="Неверный токен выгрузки.")
 
 
 @app.get("/api/config")
@@ -415,16 +423,25 @@ async def create_application(
 
 @app.get("/admin/export.xlsx")
 async def export_excel(token: str | None = None, db: Session = Depends(get_db)) -> Response:
-    if settings.public_base_url and not settings.admin_export_token:
-        raise HTTPException(status_code=503, detail="Для публичного экспорта задайте ADMIN_EXPORT_TOKEN.")
-    if settings.admin_export_token and token != settings.admin_export_token:
-        raise HTTPException(status_code=403, detail="Неверный токен экспорта.")
+    _require_admin_export_token(token)
 
     content = build_members_export(db)
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": 'attachment; filename="bfb_members.xlsx"'},
+    )
+
+
+@app.get("/admin/backup.zip")
+async def export_backup(token: str | None = None, db: Session = Depends(get_db)) -> Response:
+    _require_admin_export_token(token)
+
+    content = build_backup_archive(settings, db)
+    return Response(
+        content=content,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="bfb_backup.zip"'},
     )
 
 

@@ -90,6 +90,17 @@ function setStatus(message, kind = "") {
   statusEl.className = `status ${kind}`;
 }
 
+function renumberVisibleSections() {
+  let number = 1;
+  document.querySelectorAll("#applicationForm > .panel > h2").forEach((heading) => {
+    const title = heading.textContent.trim().replace(/^\d+\.\s*/, "");
+    if (!/^\d+\./.test(heading.textContent.trim())) return;
+    if (heading.closest(".panel")?.classList.contains("hidden")) return;
+    heading.textContent = `${number}. ${title}`;
+    number += 1;
+  });
+}
+
 function selectedFeeType() {
   return feeInputs.find((input) => input.checked)?.value || "membership";
 }
@@ -191,6 +202,7 @@ function syncParentConsentSection() {
     motherFullName.value = "";
     fatherFullName.value = "";
   }
+  renumberVisibleSections();
 }
 
 function syncApplicantMode() {

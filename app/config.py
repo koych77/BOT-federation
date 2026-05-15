@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def default_empty_database_url(cls, value: object) -> str:
+        railway_runtime = any(
+            os.getenv(name)
+            for name in ("RAILWAY_ENVIRONMENT", "RAILWAY_PROJECT_ID", "RAILWAY_SERVICE_ID")
+        )
+        if railway_runtime and value in (None, "", "sqlite:///./data/app.db"):
+            mount_path = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", "/data").rstrip("/") or "/data"
+            return f"sqlite:///{mount_path}/app.db"
         if value in (None, ""):
             return "sqlite:///./data/app.db"
         return str(value)
@@ -65,11 +72,31 @@ class Settings(BaseSettings):
     def is_sqlite_database(self) -> bool:
         return self.database_url.startswith("sqlite")
 
+    @property
+    def is_persistent_railway_sqlite(self) -> bool:
+        if not (self.is_railway_runtime and self.is_sqlite_database):
+            return False
+        mount_path = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", "/data").rstrip("/") or "/data"
+        return self.database_url.startswith(f"sqlite:///{mount_path}/")
+
+    @property
+    def database_storage_label(self) -> str:
+        if self.is_persistent_railway_sqlite:
+            return "sqlite_on_railway_volume"
+        if self.is_sqlite_database:
+            return "sqlite"
+        return "postgres"
+
     def database_safety_error(self) -> str | None:
-        if self.is_railway_runtime and self.is_sqlite_database and not self.allow_sqlite_on_railway:
+        if (
+            self.is_railway_runtime
+            and self.is_sqlite_database
+            and not self.is_persistent_railway_sqlite
+            and not self.allow_sqlite_on_railway
+        ):
             return (
                 "Unsafe Railway database configuration: DATABASE_URL is empty or points to SQLite. "
-                "Set DATABASE_URL=${{Postgres.DATABASE_URL}} for the bot service. "
+                "Set DATABASE_URL=${{Postgres.DATABASE_URL}} or use SQLite on the Railway Volume. "
                 "Writes are blocked to protect member applications from being saved to temporary storage."
             )
         return None
@@ -87,7 +114,8 @@ class Settings(BaseSettings):
             if stripped.startswith(("postgresql://", "postgres://")):
                 kind = "postgres"
             elif stripped.startswith("sqlite"):
-                kind = "sqlite"
+                mount_path = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", "/data").rstrip("/") or "/data"
+                kind = "sqlite_volume" if stripped.startswith(f"sqlite:///{mount_path}/") else "sqlite"
             elif stripped.startswith("${{"):
                 kind = "unresolved_reference"
             else:

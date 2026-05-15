@@ -142,7 +142,7 @@ async def send_status(message: Message) -> None:
     settings_database = diagnostics["settingsDatabaseUrl"]
     await message.answer(
         "Статус хранения:\n"
-        f"База: {engine.url.drivername}\n"
+        f"База: {engine.url.drivername} ({settings.database_storage_label})\n"
         f"Защита: {'ОШИБКА DATABASE_URL' if settings.database_safety_error() else 'норма'}\n"
         f"Railway: {'да' if diagnostics['railwayRuntime'] else 'нет'}\n"
         f"ENV DATABASE_URL: {env_database['kind']}, длина {env_database['length']}\n"

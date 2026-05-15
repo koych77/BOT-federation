@@ -137,10 +137,16 @@ async def send_status(message: Message) -> None:
         payments_count = db.scalar(select(func.count()).select_from(Payment)) or 0
         latest_application = db.scalars(select(MemberApplication).order_by(MemberApplication.id.desc()).limit(1)).first()
 
+    diagnostics = settings.database_url_diagnostics()
+    env_database = diagnostics["envDatabaseUrl"]
+    settings_database = diagnostics["settingsDatabaseUrl"]
     await message.answer(
         "Статус хранения:\n"
         f"База: {engine.url.drivername}\n"
         f"Защита: {'ОШИБКА DATABASE_URL' if settings.database_safety_error() else 'норма'}\n"
+        f"Railway: {'да' if diagnostics['railwayRuntime'] else 'нет'}\n"
+        f"ENV DATABASE_URL: {env_database['kind']}, длина {env_database['length']}\n"
+        f"Settings DATABASE_URL: {settings_database['kind']}, длина {settings_database['length']}\n"
         f"Заявок в базе: {applications_count}\n"
         f"Оплат в базе: {payments_count}\n"
         f"JSON-снимков на диске: {len(iter_snapshot_files(settings))}\n"

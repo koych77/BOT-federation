@@ -522,6 +522,7 @@ async def storage_status(token: str | None = None, db: Session = Depends(get_db)
         "ok": True,
         "databaseSafety": "unsafe" if _database_safety_error() else "ok",
         "databaseSafetyMessage": _database_safety_error(),
+        "databaseUrlDiagnostics": settings.database_url_diagnostics(),
         "database": engine.url.drivername,
         "applicationsCount": db.scalar(select(func.count()).select_from(MemberApplication)) or 0,
         "paymentsCount": db.scalar(select(func.count()).select_from(Payment)) or 0,
@@ -563,4 +564,5 @@ async def health() -> dict:
         "ok": True,
         "database": engine.url.drivername,
         "databaseSafety": "unsafe" if _database_safety_error() else "ok",
+        "databaseUrlDiagnostics": settings.database_url_diagnostics(),
     }

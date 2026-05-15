@@ -74,6 +74,37 @@ class Settings(BaseSettings):
             )
         return None
 
+    def database_url_diagnostics(self) -> dict[str, object]:
+        raw_value = os.getenv("DATABASE_URL")
+        configured = self.database_url
+
+        def describe(value: str | None) -> dict[str, object]:
+            if value is None:
+                return {"present": False, "length": 0, "kind": "missing", "hasWhitespace": False}
+            stripped = value.strip()
+            if not stripped:
+                return {"present": True, "length": len(value), "kind": "empty", "hasWhitespace": value != stripped}
+            if stripped.startswith(("postgresql://", "postgres://")):
+                kind = "postgres"
+            elif stripped.startswith("sqlite"):
+                kind = "sqlite"
+            elif stripped.startswith("${{"):
+                kind = "unresolved_reference"
+            else:
+                kind = stripped.split(":", 1)[0] if ":" in stripped else "unknown"
+            return {
+                "present": True,
+                "length": len(value),
+                "kind": kind,
+                "hasWhitespace": value != stripped,
+            }
+
+        return {
+            "railwayRuntime": self.is_railway_runtime,
+            "envDatabaseUrl": describe(raw_value),
+            "settingsDatabaseUrl": describe(configured),
+        }
+
     def validate_database_safety(self) -> None:
         error = self.database_safety_error()
         if error:

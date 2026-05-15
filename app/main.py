@@ -46,6 +46,21 @@ class FormDocumentRequest(BaseModel):
     initData: str = ""
 
 
+def _database_safety_error() -> str | None:
+    return settings.database_safety_error()
+
+
+def _ensure_database_write_safe() -> None:
+    if _database_safety_error():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Сохранение временно заблокировано: Railway не подключен к Postgres. "
+                "Проверьте переменную DATABASE_URL у сервиса бота."
+            ),
+        )
+
+
 def _asset_version() -> str:
     digest = hashlib.sha256()
     for filename in ("index.html", "app.js", "styles.css", "bbf-logo.png"):
@@ -142,6 +157,11 @@ def _application_form_file(content_disposition_type: str) -> FileResponse:
 
 
 def _require_admin_export_token(token: str | None) -> None:
+    if _database_safety_error():
+        raise HTTPException(
+            status_code=503,
+            detail="Выгрузка заблокирована: Railway не подключен к Postgres. Проверьте DATABASE_URL.",
+        )
     if settings.public_base_url and not settings.admin_export_token:
         raise HTTPException(status_code=503, detail="Для публичной выгрузки задайте ADMIN_EXPORT_TOKEN.")
     if settings.admin_export_token and token != settings.admin_export_token:
@@ -251,6 +271,8 @@ async def create_application(
     receipt: UploadFile = File(...),
     db: Session = Depends(get_db),
 ) -> dict:
+    _ensure_database_write_safe()
+
     if settings.require_telegram_auth and not init_data:
         raise HTTPException(status_code=401, detail="Откройте форму из Telegram-бота.")
 
@@ -458,7 +480,10 @@ async def export_backup(token: str | None = None, db: Session = Depends(get_db))
 
 @app.get("/admin/storage-status")
 async def storage_status(token: str | None = None, db: Session = Depends(get_db)) -> dict:
-    _require_admin_export_token(token)
+    if settings.public_base_url and not settings.admin_export_token:
+        raise HTTPException(status_code=503, detail="Для публичной выгрузки задайте ADMIN_EXPORT_TOKEN.")
+    if settings.admin_export_token and token != settings.admin_export_token:
+        raise HTTPException(status_code=403, detail="Неверный токен выгрузки.")
 
     upload_dir_exists = settings.upload_dir.exists()
     upload_dir_writable = False
@@ -476,6 +501,8 @@ async def storage_status(token: str | None = None, db: Session = Depends(get_db)
     latest_application = db.scalars(select(MemberApplication).order_by(MemberApplication.id.desc()).limit(1)).first()
     return {
         "ok": True,
+        "databaseSafety": "unsafe" if _database_safety_error() else "ok",
+        "databaseSafetyMessage": _database_safety_error(),
         "database": engine.url.drivername,
         "applicationsCount": db.scalar(select(func.count()).select_from(MemberApplication)) or 0,
         "paymentsCount": db.scalar(select(func.count()).select_from(Payment)) or 0,
@@ -513,4 +540,8 @@ async def telegram_webhook(secret: str, request: Request) -> dict:
 async def health() -> dict:
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
-    return {"ok": True, "database": engine.url.drivername}
+    return {
+        "ok": True,
+        "database": engine.url.drivername,
+        "databaseSafety": "unsafe" if _database_safety_error() else "ok",
+    }

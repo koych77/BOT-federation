@@ -65,13 +65,19 @@ class Settings(BaseSettings):
     def is_sqlite_database(self) -> bool:
         return self.database_url.startswith("sqlite")
 
-    def validate_database_safety(self) -> None:
+    def database_safety_error(self) -> str | None:
         if self.is_railway_runtime and self.is_sqlite_database and not self.allow_sqlite_on_railway:
-            raise RuntimeError(
+            return (
                 "Unsafe Railway database configuration: DATABASE_URL is empty or points to SQLite. "
                 "Set DATABASE_URL=${{Postgres.DATABASE_URL}} for the bot service. "
-                "The app refuses to start to protect member applications from being saved to temporary storage."
+                "Writes are blocked to protect member applications from being saved to temporary storage."
             )
+        return None
+
+    def validate_database_safety(self) -> None:
+        error = self.database_safety_error()
+        if error:
+            raise RuntimeError(error)
 
     @property
     def max_upload_bytes(self) -> int:

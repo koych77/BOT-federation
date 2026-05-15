@@ -21,8 +21,8 @@ In Railway, add a Volume to the bot service and mount it to:
 
 After that, receipt files are stored under `/data/uploads` and survive redeploys.
 
-The bot now refuses to start on Railway if `DATABASE_URL` is empty or points to SQLite.
-This protects new applications from being silently saved to temporary container storage.
+The bot blocks application writes and exports on Railway if `DATABASE_URL` is empty or points to SQLite.
+This protects new applications from being silently saved to temporary container storage while keeping `/health` and `/status` available for diagnosis.
 
 Every submitted application also gets a JSON safety snapshot under:
 

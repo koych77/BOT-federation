@@ -24,6 +24,15 @@ def _is_admin(user_id: int | None, settings: Settings) -> bool:
     return bool(user_id and user_id in settings.admin_telegram_ids)
 
 
+def _database_safety_warning(settings: Settings) -> str | None:
+    if settings.database_safety_error():
+        return (
+            "Внимание: Railway не подключен к Postgres. "
+            "Операции с заявками заблокированы, чтобы данные не сохранились во временную базу."
+        )
+    return None
+
+
 def admin_keyboard(payment_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -86,6 +95,9 @@ async def send_export(message: Message) -> None:
     if not _is_admin(message.from_user.id if message.from_user else None, settings):
         await message.answer("Эта команда доступна только администраторам.")
         return
+    if warning := _database_safety_warning(settings):
+        await message.answer(warning)
+        return
 
     with SessionLocal() as db:
         content = build_members_export(db)
@@ -100,6 +112,9 @@ async def send_backup(message: Message) -> None:
     settings = get_settings()
     if not _is_admin(message.from_user.id if message.from_user else None, settings):
         await message.answer("Эта команда доступна только администраторам.")
+        return
+    if warning := _database_safety_warning(settings):
+        await message.answer(warning)
         return
 
     with SessionLocal() as db:
@@ -125,6 +140,7 @@ async def send_status(message: Message) -> None:
     await message.answer(
         "Статус хранения:\n"
         f"База: {engine.url.drivername}\n"
+        f"Защита: {'ОШИБКА DATABASE_URL' if settings.database_safety_error() else 'норма'}\n"
         f"Заявок в базе: {applications_count}\n"
         f"Оплат в базе: {payments_count}\n"
         f"JSON-снимков на диске: {len(iter_snapshot_files(settings))}\n"
@@ -177,6 +193,9 @@ async def _set_payment_status(callback: CallbackQuery, status: str, user_text: s
     settings = get_settings()
     if not _is_admin(callback.from_user.id if callback.from_user else None, settings):
         await callback.answer("Нет доступа", show_alert=True)
+        return
+    if settings.database_safety_error():
+        await callback.answer("DATABASE_URL не подключен к Postgres", show_alert=True)
         return
 
     _, raw_id = (callback.data or "").split(":", 1)

@@ -61,6 +61,23 @@ The same status is available by URL:
 https://bot-federation-production.up.railway.app/admin/storage-status?token=ADMIN_EXPORT_TOKEN
 ```
 
+## Recover from copied Telegram chat text
+
+If Telegram history contains admin messages like `Новая заявка #...`, they can be imported back into the database.
+The recovery import skips duplicates by operation number or by member/date/amount/fee type.
+
+First run a dry-run:
+
+```powershell
+python .\scripts\recover_from_chat_text.py --file "C:\path\chat.txt" --token "ADMIN_EXPORT_TOKEN"
+```
+
+If the counts look correct, apply it:
+
+```powershell
+python .\scripts\recover_from_chat_text.py --file "C:\path\chat.txt" --token "ADMIN_EXPORT_TOKEN" --apply
+```
+
 ## Sync to this PC
 
 Run from the project folder:

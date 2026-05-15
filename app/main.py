@@ -27,6 +27,7 @@ from app.services.receipt_scanner import (
     text_contains_name_part,
     text_contains_operation,
 )
+from app.services.recovery import recover_applications_from_chat_text
 from app.services.snapshots import iter_snapshot_files, write_application_snapshot
 from app.services.storage import read_receipt_bytes, save_upload
 
@@ -476,6 +477,24 @@ async def export_backup(token: str | None = None, db: Session = Depends(get_db))
         media_type="application/zip",
         headers={"Content-Disposition": 'attachment; filename="bfb_backup.zip"'},
     )
+
+
+@app.post("/admin/recover/chat-text")
+async def recover_chat_text(
+    token: str | None = None,
+    dry_run: bool = True,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> dict:
+    _require_admin_export_token(token)
+
+    raw = await file.read()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("cp1251", errors="replace")
+
+    return recover_applications_from_chat_text(settings, db, text, dry_run=dry_run)
 
 
 @app.get("/admin/storage-status")

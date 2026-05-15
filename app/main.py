@@ -164,6 +164,8 @@ def _parse_date(raw: str | None) -> date | None:
     except ValueError:
         pass
     try:
+        if raw.isdigit() and len(raw) == 8:
+            raw = f"{raw[:2]}.{raw[2:4]}.{raw[4:]}"
         day, month, year = raw.replace("/", ".").replace("-", ".").split(".")
         return date(int(year), int(month), int(day))
     except (ValueError, TypeError) as exc:

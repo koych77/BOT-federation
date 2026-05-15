@@ -23,6 +23,7 @@ const receiptSection = document.querySelector("#receiptSection");
 const birthDateInput = document.querySelector("#birthDate");
 const statementDateInput = document.querySelector("#statementDate");
 const signatureNamePreview = document.querySelector("#signatureNamePreview");
+const dateInputs = [...document.querySelectorAll(".date-input")];
 const applicantModeInputs = [...document.querySelectorAll("input[name='applicant_mode']")];
 const feeInputs = [...document.querySelectorAll("input[name='fee_type']")];
 const applicantNameInputs = {
@@ -54,10 +55,15 @@ function formatIsoDateForUser(isoDate) {
 }
 
 function normalizeDateValue(value) {
-  const raw = value.trim();
+  let raw = value.trim();
   if (!raw) return "";
   const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) return raw;
+
+  const compactMatch = raw.match(/^(\d{2})(\d{2})(\d{4})$/);
+  if (compactMatch) {
+    raw = `${compactMatch[1]}.${compactMatch[2]}.${compactMatch[3]}`;
+  }
 
   const ruMatch = raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
   if (!ruMatch) {
@@ -78,6 +84,18 @@ function normalizeDateValue(value) {
     throw new Error("Проверьте дату: такой даты не существует.");
   }
   return iso;
+}
+
+function formatDateInputValue(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+}
+
+function syncDateInputFormat(event) {
+  const input = event.target;
+  input.value = formatDateInputValue(input.value);
 }
 
 function dateInputToIso(input) {
@@ -369,6 +387,10 @@ memberMiddleName?.addEventListener("input", syncPaymentPreview);
 feeInputs.forEach((input) => input.addEventListener("change", syncAmount));
 applicantModeInputs.forEach((input) => input.addEventListener("change", syncApplicantMode));
 birthDateInput?.addEventListener("change", syncParentConsentSection);
+dateInputs.forEach((input) => {
+  input.maxLength = 10;
+  input.addEventListener("input", syncDateInputFormat);
+});
 requestFormDoc?.addEventListener("click", requestFormDocument);
 jumpToReceiptButton?.addEventListener("click", () => {
   receiptSection?.scrollIntoView({ behavior: "smooth", block: "start" });

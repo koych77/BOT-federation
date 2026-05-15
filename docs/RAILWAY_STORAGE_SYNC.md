@@ -21,6 +21,17 @@ In Railway, add a Volume to the bot service and mount it to:
 
 After that, receipt files are stored under `/data/uploads` and survive redeploys.
 
+The bot now refuses to start on Railway if `DATABASE_URL` is empty or points to SQLite.
+This protects new applications from being silently saved to temporary container storage.
+
+Every submitted application also gets a JSON safety snapshot under:
+
+```text
+/data/uploads/snapshots/applications/
+```
+
+These snapshots are a second recovery layer next to PostgreSQL and the admin Telegram chat.
+
 ## Admin bot commands
 
 Admins from `ADMIN_TELEGRAM_IDS` can use:
@@ -29,6 +40,7 @@ Admins from `ADMIN_TELEGRAM_IDS` can use:
 /admin
 /export
 /backup
+/status
 ```
 
 `/export` sends the Excel file to Telegram.
@@ -37,7 +49,17 @@ Admins from `ADMIN_TELEGRAM_IDS` can use:
 
 - Excel export
 - uploaded receipt files
+- JSON safety snapshots
+- `BACKUP_MANIFEST.json` with database/storage counts
 - `MISSING_RECEIPTS.txt` if some stored receipt cannot be read
+
+`/status` shows the current database backend, application count, payment count, snapshot count, and latest application id.
+
+The same status is available by URL:
+
+```text
+https://bot-federation-production.up.railway.app/admin/storage-status?token=ADMIN_EXPORT_TOKEN
+```
 
 ## Sync to this PC
 

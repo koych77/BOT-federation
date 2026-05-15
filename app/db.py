@@ -20,6 +20,7 @@ def _normalise_database_url(url: str) -> str:
 
 
 settings = get_settings()
+settings.validate_database_safety()
 database_url = _normalise_database_url(settings.database_url)
 
 if database_url.startswith("sqlite"):

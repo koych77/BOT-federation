@@ -1,4 +1,5 @@
 import hashlib
+import logging
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -9,11 +10,12 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Upload
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.bot import build_dispatcher, notify_admins
 from app.config import get_settings
-from app.db import get_db, init_db
+from app.db import engine, get_db, init_db
 from app.models import MemberApplication, Payment
 from app.security import parse_telegram_init_data
 from app.services.backup import build_backup_archive
@@ -25,9 +27,11 @@ from app.services.receipt_scanner import (
     text_contains_name_part,
     text_contains_operation,
 )
+from app.services.snapshots import iter_snapshot_files, write_application_snapshot
 from app.services.storage import read_receipt_bytes, save_upload
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 app = FastAPI(title=settings.app_name)
 dispatcher = build_dispatcher()
 
@@ -408,6 +412,11 @@ async def create_application(
     db.refresh(application)
     db.refresh(payment)
 
+    try:
+        write_application_snapshot(settings, application, payment)
+    except Exception:
+        logger.exception("Failed to write application snapshot for application #%s", application.id)
+
     await notify_admins(application, payment, db)
 
     return {
@@ -447,6 +456,43 @@ async def export_backup(token: str | None = None, db: Session = Depends(get_db))
     )
 
 
+@app.get("/admin/storage-status")
+async def storage_status(token: str | None = None, db: Session = Depends(get_db)) -> dict:
+    _require_admin_export_token(token)
+
+    upload_dir_exists = settings.upload_dir.exists()
+    upload_dir_writable = False
+    if settings.storage_backend == "local":
+        settings.upload_dir.mkdir(parents=True, exist_ok=True)
+        upload_dir_exists = settings.upload_dir.exists()
+        probe = settings.upload_dir / ".write-test"
+        try:
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+            upload_dir_writable = True
+        except OSError:
+            upload_dir_writable = False
+
+    latest_application = db.scalars(select(MemberApplication).order_by(MemberApplication.id.desc()).limit(1)).first()
+    return {
+        "ok": True,
+        "database": engine.url.drivername,
+        "applicationsCount": db.scalar(select(func.count()).select_from(MemberApplication)) or 0,
+        "paymentsCount": db.scalar(select(func.count()).select_from(Payment)) or 0,
+        "latestApplicationId": latest_application.id if latest_application else None,
+        "latestApplicationCreatedAt": (
+            latest_application.created_at.isoformat()
+            if latest_application and latest_application.created_at
+            else None
+        ),
+        "storageBackend": settings.storage_backend,
+        "uploadDir": str(settings.upload_dir),
+        "uploadDirExists": upload_dir_exists,
+        "uploadDirWritable": upload_dir_writable,
+        "snapshotsCount": len(iter_snapshot_files(settings)),
+    }
+
+
 @app.post("/telegram/webhook/{secret}")
 async def telegram_webhook(secret: str, request: Request) -> dict:
     if secret != settings.telegram_webhook_secret:
@@ -465,4 +511,6 @@ async def telegram_webhook(secret: str, request: Request) -> dict:
 
 @app.get("/health")
 async def health() -> dict:
-    return {"ok": True}
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    return {"ok": True, "database": engine.url.drivername}

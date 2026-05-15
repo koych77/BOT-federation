@@ -84,7 +84,7 @@ try {
     "MEMBERSHIP_FEE=90" `
     "CURRENCY=BYN" `
     "REQUIRE_TELEGRAM_AUTH=false" `
-    "UPLOAD_DIR=./data/uploads" `
+    "UPLOAD_DIR=/data/uploads" `
     "MAX_UPLOAD_MB=10" `
     "STORAGE_BACKEND=local" | Out-Host
 

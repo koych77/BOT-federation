@@ -4,14 +4,16 @@ from pathlib import Path
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
-from app.db import SessionLocal
+from app.db import SessionLocal, engine
 from app.models import MemberApplication, Payment
 from app.services.backup import build_backup_archive
 from app.services.export import build_members_export
 from app.services.labels import APPLICATION_TYPE_LABELS, APPLICANT_MODE_LABELS, AUTO_CHECK_LABELS, FEE_LABELS, label
+from app.services.snapshots import iter_snapshot_files
 from app.services.storage import read_receipt_bytes
 
 router = Router()
@@ -72,7 +74,8 @@ async def admin(message: Message) -> None:
     await message.answer(
         "Админ-команды:\n"
         "/export - получить Excel в чат\n"
-        "/backup - получить архив Excel + чеки\n\n"
+        "/backup - получить архив Excel + чеки\n"
+        "/status - проверить базу и хранилище\n\n"
         f"Ссылка на Excel:\n{export_url}"
     )
 
@@ -104,6 +107,28 @@ async def send_backup(message: Message) -> None:
     await message.answer_document(
         BufferedInputFile(content, filename="bfb_backup.zip"),
         caption="Архив: Excel-выгрузка и все доступные чеки.",
+    )
+
+
+@router.message(Command("status"))
+async def send_status(message: Message) -> None:
+    settings = get_settings()
+    if not _is_admin(message.from_user.id if message.from_user else None, settings):
+        await message.answer("Эта команда доступна только администраторам.")
+        return
+
+    with SessionLocal() as db:
+        applications_count = db.scalar(select(func.count()).select_from(MemberApplication)) or 0
+        payments_count = db.scalar(select(func.count()).select_from(Payment)) or 0
+        latest_application = db.scalars(select(MemberApplication).order_by(MemberApplication.id.desc()).limit(1)).first()
+
+    await message.answer(
+        "Статус хранения:\n"
+        f"База: {engine.url.drivername}\n"
+        f"Заявок в базе: {applications_count}\n"
+        f"Оплат в базе: {payments_count}\n"
+        f"JSON-снимков на диске: {len(iter_snapshot_files(settings))}\n"
+        f"Последняя заявка: #{latest_application.id if latest_application else '-'}"
     )
 
 

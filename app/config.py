@@ -1,4 +1,5 @@
 from functools import lru_cache
+import os
 from pathlib import Path
 from typing import Annotated
 
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
 
     app_name: str = "BFB Membership Bot"
     database_url: str = "sqlite:///./data/app.db"
+    allow_sqlite_on_railway: bool = False
 
     bot_token: str | None = None
     bot_username: str | None = None
@@ -51,6 +53,25 @@ class Settings(BaseSettings):
         if value in (None, ""):
             return "sqlite:///./data/app.db"
         return str(value)
+
+    @property
+    def is_railway_runtime(self) -> bool:
+        return any(
+            os.getenv(name)
+            for name in ("RAILWAY_ENVIRONMENT", "RAILWAY_PROJECT_ID", "RAILWAY_SERVICE_ID")
+        )
+
+    @property
+    def is_sqlite_database(self) -> bool:
+        return self.database_url.startswith("sqlite")
+
+    def validate_database_safety(self) -> None:
+        if self.is_railway_runtime and self.is_sqlite_database and not self.allow_sqlite_on_railway:
+            raise RuntimeError(
+                "Unsafe Railway database configuration: DATABASE_URL is empty or points to SQLite. "
+                "Set DATABASE_URL=${{Postgres.DATABASE_URL}} for the bot service. "
+                "The app refuses to start to protect member applications from being saved to temporary storage."
+            )
 
     @property
     def max_upload_bytes(self) -> int:

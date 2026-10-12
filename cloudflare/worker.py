@@ -140,6 +140,11 @@ async def telegram_webhook(secret: str, request: Request) -> dict:
     text = str(message.get("text", ""))
     if chat.get("id") and (text.startswith("/start") or text.startswith("/form")):
         webapp_url = env_text(env, "WEBAPP_URL", "https://federation-bot.koych77.workers.dev")
+        menu_button = {"type": "web_app", "text": "Открыть анкету", "web_app": {"url": webapp_url}}
+        await telegram_call(env, "setChatMenuButton", {
+            "chat_id": str(chat["id"]),
+            "menu_button": json.dumps(menu_button, ensure_ascii=False),
+        })
         keyboard = {"inline_keyboard": [[{"text": "Открыть анкету", "web_app": {"url": webapp_url}}]]}
         await telegram_call(env, "sendMessage", {"chat_id": str(chat["id"]),
           "text": "Откройте анкету для вступления или продления членства в федерации.",

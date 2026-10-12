@@ -6,3 +6,6 @@ dependencies = ["fastapi>=0.141.1"]
 
 [dependency-groups]
 dev = ["workers-py", "workers-runtime-sdk"]
+
+[tool.setuptools]
+packages = []

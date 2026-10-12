@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "federation-bot",
+  "main": "cloudflare/worker.py",
+  "compatibility_date": "2026-10-12",
+  "compatibility_flags": ["python_workers"],
+  "assets": {
+    "directory": "./frontend",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "federation-bot-db",
+      "database_id": "53ab12ae-6143-4377-aa98-6a584d43f438"
+    }
+  ]
+}
